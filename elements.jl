@@ -3,11 +3,9 @@ module Elements
 using LinearAlgebra
 using StaticArrays
 
-export Tetrahedron, Triangulation3D, point3,point2
+export Tetrahedron, Triangulation3D, point3
 
 const point3 = SVector{3,Float64}
-const point2 = SVector{3,Float64}
-
 
 
 struct Tetrahedron
@@ -18,12 +16,13 @@ end
 
 struct Triangulation3D
     points::Vector{point3}
-    density::Vector{Float64}
+    ρStar::Vector{Float64}
+    
 end
 
 
 # --- Utility function to compute volume ---
-function computeVolume(verts::NTuple{4, point3})
+function computeVolume(verts::Vector{point3})
     v1, v2, v3, v4 = verts
     a = v2 - v1
     b = v3 - v1
@@ -48,6 +47,7 @@ end
 
 function Triangulation3D(points::Vector{point3},tets::Matrix)
     weights = ones(size(points),1)
+    print("Manual Weights")
     return Triangulation3D(points,tets,weights)
 end
 
@@ -55,9 +55,15 @@ function Triangulation3D(points::Vector{point3},tets::Matrix,weights::Vector{Flo
     rhos = zeros(size(points))
     
     for tet in eachrow(tets)
-        pos = points[:]
-
+        pos = points[tet]
+        print(pos)
+        vol = computeVolume(pos)
+        for i in tet # i is not linear index
+            rhos[i] += weights[i]/vol 
+        end
     end
+
+    return Triangulation3D(points,rhos)
     
 end
 

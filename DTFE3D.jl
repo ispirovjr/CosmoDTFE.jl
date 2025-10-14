@@ -1,10 +1,12 @@
 using TetGen
 using StaticArrays
 using GLMakie
+using JLD
 
 using .TesselationCore
 
 points3d = [point3(@SVector rand(3)) for _ in 1:50]
+
 
 
 coords, tets = TesselationCore.tesselate(points3d)
@@ -32,14 +34,13 @@ for tet in eachrow(tets)
 end
 
 fig
-plotTet(teter)
+
+save("./3D.png", fig)
 
 
-tester  = coords[:,tets[1,:]]
+w = ones(50)
+
+tes = Triangulation3D(points3d,tets',w)
 
 
-coords
-
-
-
-_computeVolume(tester)
+tes.ρStar

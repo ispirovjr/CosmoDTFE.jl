@@ -3,29 +3,7 @@ module Tesselate
 using TetGen
 using ..Elements
 
-pointsToMatrix(points::Vector{point2}) = reduce(hcat, points)' 
 pointsToMatrix(points::Vector{point3}) = reduce(hcat, points)'
-
-
-"""
-tesselate2d(points::Matrix{Float64})
-Returns (coords, triangles)
-
-work in progress due to the nature of TetGen
-"""
-function tesselate(points::Vector{point2})
-
-    coords2 = pointsToMatrix(points)
-
-    meshdata = TetGen.RawTetGenIO{Float64}()
-    meshdata.pointlist = coords2'
-    
-    result = TetGen.tetrahedralize(meshdata, "dQ")
-
-    triangles = result.trifacelist'
-    coords = points
-    return coords, triangles
-end
 
 
 """
