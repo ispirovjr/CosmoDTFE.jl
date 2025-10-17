@@ -22,7 +22,7 @@ end
 
 
 # --- Utility function to compute volume ---
-function computeVolume(verts::Vector{point3})
+function computeVolume(verts)
     v1, v2, v3, v4 = verts
     a = v2 - v1
     b = v3 - v1

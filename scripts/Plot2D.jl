@@ -14,5 +14,5 @@ for tet in eachrow(tets)
     pts = hcat(coords[:,tet],coords[:,tet[1]])
     Plots.plot!(pts[1,:],pts[2,:],label="",color=:black)
 end
-savefig("triangulation2d.png")
+savefig("../Images/triangulation2d.png")
 

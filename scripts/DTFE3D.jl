@@ -35,7 +35,7 @@ end
 
 fig
 
-save("./3D.png", fig)
+save("./Images/3D.png", fig)
 
 
 w = ones(50)
