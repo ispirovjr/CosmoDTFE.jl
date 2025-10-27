@@ -46,7 +46,7 @@ end
 
 
 function Triangulation3D(points::Vector{point3},tets::Matrix)
-    weights = ones(size(points),1)
+    weights = ones(size(points,1))
     print("Manual Weights")
     return Triangulation3D(points,tets,weights)
 end
