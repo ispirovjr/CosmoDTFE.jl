@@ -47,16 +47,14 @@ end
 
 function Triangulation3D(points::Vector{point3},tets::Matrix)
     weights = ones(size(points,1))
-    print("Manual Weights")
     return Triangulation3D(points,tets,weights)
 end
 
-function Triangulation3D(points::Vector{point3},tets::Matrix,weights::Vector{Float64})
+function Triangulation3D(points::Vector{point3},tets::Matrix,weights::Vector{Float64}) #TODO optimize
     rhos = zeros(size(points))
     
     for tet in eachrow(tets)
         pos = points[tet]
-        print(pos)
         vol = computeVolume(pos)
         for i in tet # i is not linear index
             rhos[i] += weights[i]/vol 

@@ -25,9 +25,9 @@ function tesselate(points::Vector{point3})
     return coords, tets
 end
 
-function tesselate(points::Matrix{Float64})
-    meshdata = TetGen.RawTetGenIO()
-    meshdata.pointlist = points'
+function tesselate(points::Matrix)
+    meshdata = TetGen.RawTetGenIO{Float64}()
+    meshdata.pointlist = points
 
     result = TetGen.tetrahedralize(meshdata, "Q")
 
@@ -35,5 +35,7 @@ function tesselate(points::Matrix{Float64})
     coords = result.pointlist
     return coords, tets
 end
+
+
 
 end
