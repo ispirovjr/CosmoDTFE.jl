@@ -27,7 +27,7 @@ end
 
 function generateBVHTree(boxes,depth::Int,limBox::Matrix, indices)
     
-    if depth == 0 || size(boxes,2) < 2 
+    if depth == 0 || size(indices,1) < 2 
         return BVHLeaf(indices)
     end
     
