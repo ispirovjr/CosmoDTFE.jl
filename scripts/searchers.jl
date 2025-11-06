@@ -1,6 +1,7 @@
 module Searchers
 
 using StaticArrays
+using LinearAlgebra
 
 using ..Bvh
 
@@ -49,16 +50,30 @@ function findID(point,simplices, bvh::BVH)
     return indices[idx]
 end
 
-function findID(point,simplices::Matrix, bvh::BVH) 
+function findID(point,simplices::Array, bvh::BVH) 
     indices = recursiveSearch(point,bvh.tree,bvh.bbox)
     
-    simplNeighborhood = simplices[indices,:]
+    simplNeighborhood = simplices[:,indices,:]
 
     idx = earlyStopSearch(point,simplNeighborhood)
 
     if idx == nothing
         return nothing
     end
+
+    return indices[idx]
+end
+
+function findID(point,simplices::Array{SVector{3,Float64},2}, bvh::BVH) 
+    indices = recursiveSearch(point,bvh.tree,bvh.bbox)
+    
+    simplNeighborhood = simplices[indices,:]
+
+    idx = earlyStopSearch(point,simplNeighborhood)
+
+   if idx == nothing
+        return nothing
+   end
 
     return indices[idx]
 end

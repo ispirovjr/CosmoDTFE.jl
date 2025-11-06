@@ -21,23 +21,20 @@ struct BVH
 end
 
 function generateBVHTree(boxes,depth::Int,limBox::Matrix)
-    indices = 1:size(boxes,3)
+    indices = 1:size(boxes,2)
     return generateBVHTree(boxes,depth,limBox,indices)
 end
 
 function generateBVHTree(boxes,depth::Int,limBox::Matrix, indices)
     
-    if depth == 0 || size(boxes,3) < 2 
-        if depth!=0
-            println("Nontrivial leaf $depth") #REMOVE BEFORE PROD
-        end
+    if depth == 0 || size(boxes,2) < 2 
         return BVHLeaf(indices)
     end
     
     ax = depth%3 + 1
 
-    mins = boxes[ax,1,indices]
-    maxs = boxes[ax,2,indices]
+    mins = boxes[ax,indices,1]
+    maxs = boxes[ax,indices,2]
     
     line = (limBox[ax,2]+limBox[ax,1])/2 
 
@@ -74,6 +71,22 @@ function BVH(data::Vector,depth::Int,box::Matrix)
     tree = generateBVHTree(boxes,depth,box)
     return BVH(tree,box)
 end
+
+
+function BVH(data::Array,depth::Int,box::Matrix)
+    boxes = cat(minimum(data,dims=3),maximum(data,dims=3),dims=3)
+    tree = generateBVHTree(boxes,depth,box)
+    return BVH(tree,box)
+end
+
+function BVH(data::Array,depth::Int)
+    boxes = cat(minimum(data,dims=3),maximum(data,dims=3),dims=3)
+    box = hcat(minimum(boxes[:,:,1],dims=2),maximum(boxes[:,:,2],dims=2))
+    tree = generateBVHTree(boxes,depth,box)
+    return BVH(tree,box)
+end
+
+
 
 function cornerSimplexMatr(simplex)
     return hcat(minimum(simplex,dims=1)',maximum(simplex,dims=1)') 
