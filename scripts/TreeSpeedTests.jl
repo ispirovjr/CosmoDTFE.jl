@@ -14,7 +14,7 @@ BVH = TesselationCore.BVH
 point3 = TesselationCore.point3
 
 
-basePath = "./../DTFE/Illustris3/output";
+basePath = "../ThesisMaster/Illustris/";
 
 fields = ["Masses","Coordinates","ParticleIDs"];
 
@@ -31,6 +31,8 @@ Ns = [1,5,9,12,15,16,17,18,19,20,21,22,23,24]
 Ts = []
 errs = []
 statses = []
+
+println("Generation")
 
 for n in Ns
 
@@ -58,12 +60,25 @@ Plots.plot(Ns,Ts,yerr = errs,yscale=:log10,label="Data")
 Plots.plot!(Ns,model(Ns,params),yscale=:log10,label = "Exponential Model")
 savefig("./Images/TreeGrowth.png")
 
+
+Plots.plot(Ns,Ts,yerr = errs,label="Data")
+Plots.plot!(Ns,model(Ns,params),label = "Exponential Model")
+savefig("./Images/TreeGrowthLin.png")
+
+
+
 means = []
 meds = []
 
 results = []
 
 midPoint = mean(bvh.bbox,dims=2)[:,1]
+
+bvh = nothing
+tes = nothing
+tets = nothing 
+
+println("Estimation")
 
 for n in Ns
 
@@ -102,13 +117,13 @@ end
 
 leavz = []
 
-Ns = [1,5,9,12,15,16,17,18,19,20]
+println("Leaves")
 
 for n in Ns
 
-    bvh,tes,tets = TesselationCore.standardEstimator(ps,n)
+    est, _, __ = TesselationCore.standardEstimator(ps,n)
 
-    push!(leavz,countLeaves(bvh.tree))
+    push!(leavz,countLeaves(est.tree))
     
     println(n)
 end
