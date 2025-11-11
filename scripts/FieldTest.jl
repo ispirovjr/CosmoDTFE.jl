@@ -4,19 +4,17 @@ using JLD
 using BenchmarkTools
 using LinearAlgebra
 using Plots
-using ColorSchemes
-using GLMakie
 
 import illustris_julia as il
 
-include("../scripts/TesselationCore.jl")
+include("./TesselationCore.jl")
 import .TesselationCore
 
 BVH = TesselationCore.BVH
 point3 = TesselationCore.point3
 
 
-basePath = "../../DTFE/Illustris3/output";
+basePath = "../ThesisMaster/Illustris/";
 
 fields = ["SubhaloMass","SubhaloCM"];
 subhalos = il.groupcat.loadSubhalos(basePath,135,fields)
@@ -43,6 +41,8 @@ z = (bvh.bbox[3,2] + bvh.bbox[3,1])/2
 
 dens = zeros(N,N)
 
+println("Slice")
+
 for (i,x) in pairs(xs)
     for (j,y) in pairs(ys)
         dens[i,j] = TesselationCore.DTFE([x,y,z],bvh,tets,tes)
@@ -64,25 +64,18 @@ zs =  bvh.bbox[3,1]:step:bvh.bbox[3,2]
 
 dens = zeros(N,N,N)
 
+println("Fat Chunk")
+
 for (i,x) in pairs(xs)
     for (j,y) in pairs(ys)
         for (k,z) in pairs(zs)
-            dens[i,j,k] = DTFE([x,y,z],bvh,tets,tes)
+            dens[i,j,k] = TesselationCore.DTFE([x,y,z],bvh,tets,tes)
 
         end
 
     end
 end
 
-lowColor  = get(ColorSchemes.acton,LinRange(0,1,256))[1]
 
-fig = GLMakie.Figure(size = (1600,1600),backgroundcolor=lowColor)
-ax = GLMakie.LScene(fig[1,1],scenekw=(show_axis=false,backgroundcolor=lowColor))
-volplot = volume!(
-    ax,dens ./median(dens),
-    algorithm=:mip,
-    colormap = :acton,
-    colorrange = (.0,25),
-    )
 
-save("../Images/DTFE.png", fig)  
+save("../saves/3Ddens.jld", dens)  
