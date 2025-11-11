@@ -3,6 +3,7 @@ module Estimators
 using ..Elements, ..Tesselate, ..Bvh, ..Searchers
 using StaticArrays
 using LinearAlgebra
+using CUDA
 
 export standardEstimator, DTFE
 
@@ -55,7 +56,7 @@ function DTFE(point,bvh,tetrahedra,tesselation)
     return interpolation
 end
 
-function invertClassic(rhos,simplex) 
+@inline function invertClassic(rhos,simplex) 
     r = rhos[2:end] .- rhos[1]
 
     v1, v2, v3, v4 = simplex[1], simplex[2], simplex[3], simplex[4]
@@ -68,5 +69,55 @@ function invertClassic(rhos,simplex)
     
     return inv(mat)*r
 end
+
+@inline function invertGPU(rhos, simplex)
+    r = rhos[2:end] .- rhos[1]
+    a = simplex[2] - simplex[1]
+    b = simplex[3] - simplex[1]
+    c = simplex[4] - simplex[1]
+    mat = SMatrix{3,3}([a'; b'; c'])
+    return inv(mat) * r
+end
+
+@kernel function interpolateGPU!(points, tets, coords, rhoStars, out)
+    i = @index(Global)
+    if i <= size(points, 1)
+        tet  = tets[i, :]
+        simp = coords[tet, :]
+        rhos = rhoStars[tet]
+        delRho = invertGPU(rhos, simp)
+        out[i] = rhos[1] + dot(points[i, :] .- simp[1, :], delRho)
+    end
+end
+
+function DTFE(points::Vector, bvh, tetrahedra, tesselation)
+
+    ids = [findID(p, tesselation.points[tetrahedra], bvh) for p in points]
+
+    valid = findall(!isnothing, ids)
+    cleanPoints = points[valid]
+    cleanIds = getindex.(ids[valid]) 
+
+    coords = tesselation.points
+    rhoStar = tesselation.ρStar
+    tets = tetrahedra[cleanIds, :]
+
+    cuPoints = CuArray(cleanPoints)
+    cuTets = CuArray(tets)
+    cuCoords = CuArray(coords)
+    cuRhoStar = CuArray(rhoStar)
+    cuOut = CuArray(zeros(Float32, length(cleanPoints)))
+
+    n = length(cleanPoints)
+    interpolateGPU!(CUDADevice())(cuPoints, cuTets, cuCoords, cuRhoStar, cuOut; ndrange=n)
+
+    results = Array(cuOut)
+
+    out = zeros(Float32, length(points))
+    out[valid] = results
+
+    return out
+end
+
 
 end
