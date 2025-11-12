@@ -4,6 +4,7 @@ using ..Elements, ..Tesselate, ..Bvh, ..Searchers
 using StaticArrays
 using LinearAlgebra
 using KernelAbstractions
+using CUDA
 
 export standardEstimator, DTFE
 
