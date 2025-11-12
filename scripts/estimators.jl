@@ -3,7 +3,7 @@ module Estimators
 using ..Elements, ..Tesselate, ..Bvh, ..Searchers
 using StaticArrays
 using LinearAlgebra
-using CUDA
+using KernelAbstractions, CUDA
 
 export standardEstimator, DTFE
 
@@ -92,7 +92,7 @@ end
 
 function DTFE(points::Vector, bvh, tetrahedra, tesselation)
 
-    ids = [findID(p, tesselation.points[tetrahedra], bvh) for p in points]
+    ids = [findID(p, tesselation.points[tetrahedra], bvh) for p in eachrow(points)]
 
     valid = findall(!isnothing, ids)
     cleanPoints = points[valid]
@@ -102,7 +102,7 @@ function DTFE(points::Vector, bvh, tetrahedra, tesselation)
     rhoStar = tesselation.ρStar
     tets = tetrahedra[cleanIds, :]
 
-    cuPoints = CuArray(cleanPoints)
+    cuPoints = CuArray(SVector{3,Float64}(cleanPoints))
     cuTets = CuArray(tets)
     cuCoords = CuArray(coords)
     cuRhoStar = CuArray(rhoStar)
