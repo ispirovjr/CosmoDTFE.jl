@@ -3,7 +3,8 @@ module Estimators
 using ..Elements, ..Tesselate, ..Bvh, ..Searchers
 using StaticArrays
 using LinearAlgebra
-using KernelAbstractions, CUDA
+using KernelAbstractions
+using CUDA
 
 export standardEstimator, DTFE
 
@@ -90,12 +91,12 @@ end
     end
 end
 
-function DTFE(points::Vector, bvh, tetrahedra, tesselation)
+function DTFE(points::Matrix, bvh, tetrahedra, tesselation)
 
     ids = [findID(p, tesselation.points[tetrahedra], bvh) for p in eachrow(points)]
 
     valid = findall(!isnothing, ids)
-    cleanPoints = points[valid]
+    cleanPoints = points[:,valid]
     cleanIds = getindex.(ids[valid]) 
 
     coords = tesselation.points
