@@ -91,9 +91,9 @@ end
     end
 end
 
-function DTFE(points::Matrix, bvh, tetrahedra, tesselation)
+function DTFE(points::Vector{Vector{Float64}}, bvh, tetrahedra, tesselation)
 
-    ids = [findID(p, tesselation.points[tetrahedra], bvh) for p in eachrow(points)]
+    ids = [findID(points[:,i], tesselation.points[tetrahedra], bvh) for i in 1:size(points,2)]
 
     valid = findall(!isnothing, ids)
     cleanPoints = points[:,valid]
