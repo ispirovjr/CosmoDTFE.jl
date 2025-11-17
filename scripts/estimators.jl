@@ -93,17 +93,17 @@ end
 
 function DTFE(points::Vector{Vector{Float64}}, bvh, tetrahedra, tesselation)
 
-    ids = [findID(points[:,i], tesselation.points[tetrahedra], bvh) for i in 1:size(points,2)]
+    ids = [findID(pt, tesselation.points[tetrahedra], bvh) for pt in points]
 
     valid = findall(!isnothing, ids)
-    cleanPoints = points[:,valid]
+    cleanPoints = points[valid]
     cleanIds = getindex.(ids[valid]) 
 
     coords = tesselation.points
     rhoStar = tesselation.ρStar
     tets = tetrahedra[cleanIds, :]
 
-    cuPoints = CuArray(SVector{3,Float64}(cleanPoints))
+    cuPoints = cuPoints = [CuArray(SVector{3,Float64}(cleanPoint)) for cleanPoint in eachcol(cleanPoints)] 
     cuTets = CuArray(tets)
     cuCoords = CuArray(coords)
     cuRhoStar = CuArray(rhoStar)
