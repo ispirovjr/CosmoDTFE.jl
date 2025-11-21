@@ -103,7 +103,7 @@ function DTFECuda(points::Matrix, bvh, tetrahedra, tesselation) #Abandon until w
     rhoStar = tesselation.ρStar
     tets = tetrahedra[cleanIds, :]
 
-    cuPoints = cuPoints = [CuArray(SVector{3,Float64}(cleanPoint)) for cleanPoint in eachcol(cleanPoints)] 
+    cuPoints = [CuArray(SVector{3,Float64}(cleanPoint)) for cleanPoint in eachcol(cleanPoints)] 
     cuTets = CuArray(tets)
     cuCoords = CuArray(coords)
     cuRhoStar = CuArray(rhoStar)
