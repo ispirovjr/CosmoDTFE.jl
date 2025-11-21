@@ -93,17 +93,17 @@ end
 
 function DTFECuda(points::Matrix, bvh, tetrahedra, tesselation) #Abandon until we figure if we can use GPU in kapteyn
 
-    ids = [findID(p, tesselation.points[tetrahedra], bvh) for p in eachrow(points)]
+    ids = [findID(pt, tesselation.points[tetrahedra], bvh) for pt in points]
 
     valid = findall(!isnothing, ids)
-    cleanPoints = points[:,valid]
+    cleanPoints = points[valid]
     cleanIds = getindex.(ids[valid]) 
 
     coords = tesselation.points
     rhoStar = tesselation.ρStar
     tets = tetrahedra[cleanIds, :]
 
-    cuPoints = CuArray(SVector{3,Float64}(cleanPoints))
+    cuPoints = cuPoints = [CuArray(SVector{3,Float64}(cleanPoint)) for cleanPoint in eachcol(cleanPoints)] 
     cuTets = CuArray(tets)
     cuCoords = CuArray(coords)
     cuRhoStar = CuArray(rhoStar)

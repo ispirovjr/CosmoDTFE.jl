@@ -71,6 +71,7 @@ function findID(point,simplices::Array{SVector{3,Float64},2}, bvh::BVH)
 
     idx = earlyStopSearch(point,simplNeighborhood)
 
+
    if idx == nothing
         return nothing
    end
@@ -79,7 +80,7 @@ function findID(point,simplices::Array{SVector{3,Float64},2}, bvh::BVH)
 end
 
 
-function earlyStopSearch(p::Vector{Float64}, simplices::Vector)
+function earlyStopSearch(p::Vector, simplices::Vector)
     for (i, s) in pairs(simplices)
         if intersection3D(p, s)
             return i
@@ -87,7 +88,7 @@ function earlyStopSearch(p::Vector{Float64}, simplices::Vector)
     end
 end
 
-function earlyStopSearch(p::Vector{Float64}, simplices::Matrix)
+function earlyStopSearch(p::Vector, simplices::Matrix)
     for (i, s) in pairs(eachrow(simplices))
         if intersection3D(p, s)
             return i
@@ -117,6 +118,7 @@ end
 @inline function intersection3D(point, simplex)
     @inbounds begin
         p = SVector{3,Float64}(point)
+
         v1, v2, v3, v4 = simplex[1], simplex[2], simplex[3], simplex[4]
         a = v2 - v1 
         b = v3 - v1 # distances from v1 to each vertex and p
