@@ -91,7 +91,7 @@ end
     end
 end
 
-function DTFE(points::Vector{Vector{Float64}}, bvh, tetrahedra, tesselation)
+function DTFECuda(points::Matrix, bvh, tetrahedra, tesselation) #Abandon until we figure if we can use GPU in kapteyn
 
     ids = [findID(pt, tesselation.points[tetrahedra], bvh) for pt in points]
 
@@ -119,6 +119,11 @@ function DTFE(points::Vector{Vector{Float64}}, bvh, tetrahedra, tesselation)
 
     return out
 end
+
+function DTFEMultiThread(points::Matrix, bvh, tetrahedra, tesselation)
+    #TODO
+end
+
 
 
 end
