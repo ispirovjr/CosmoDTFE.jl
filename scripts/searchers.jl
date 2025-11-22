@@ -29,7 +29,7 @@ end
 function findSimplex(point,simplices, bvh::BVH) 
     indices = recursiveSearch(point,bvh.tree,bvh.bbox)
     
-    simplNeighborhood = simplices[indices]
+    simplNeighborhood = simplices[indices,:]
 
     idx = earlyStopSearch(point,simplNeighborhood)
 
@@ -39,7 +39,7 @@ end
 function findID(point,simplices, bvh::BVH) 
     indices = recursiveSearch(point,bvh.tree,bvh.bbox)
     
-    simplNeighborhood = simplices[indices]
+    simplNeighborhood = simplices[indices,:]
 
     idx = earlyStopSearch(point,simplNeighborhood)
 
@@ -80,13 +80,14 @@ function findID(point,simplices::Array{SVector{3,Float64},2}, bvh::BVH)
 end
 
 
-function earlyStopSearch(p::Vector, simplices::Vector)
-    for (i, s) in pairs(simplices)
-        if intersection3D(p, s)
-            return i
-        end
-    end
-end
+# vector of transposes (legacy reasons, remove before prod)
+# function earlyStopSearch(p::Vector, simplices::Vector)
+#     for (i, s) in pairs(simplices)
+#         if intersection3D(p, s)
+#             return i
+#         end
+#     end
+# end
 
 function earlyStopSearch(p::Vector, simplices::Matrix)
     for (i, s) in pairs(eachrow(simplices))
@@ -96,7 +97,7 @@ function earlyStopSearch(p::Vector, simplices::Matrix)
     end
 end
 
-
+#ideal case, overload leads here
 @inline function intersection3D(p::SVector{3, Float64}, simplex::SMatrix{4, 3, Float64})
     @inbounds begin
         v1, v2, v3, v4 = simplex[1, :], simplex[2, :], simplex[3, :], simplex[4, :]
@@ -115,7 +116,8 @@ end
     return (x1 >= 0) & (x2 >= 0) & (x3 >= 0) & (s <= 1)
 end
 
-@inline function intersection3D(point, simplex)
+# float vector, and vector of svectors - due to funny subtypes, we leave unrestricted
+@inline function intersection3D(point::Vector{Float64}, simplex)
     @inbounds begin
         p = SVector{3,Float64}(point)
 
@@ -135,11 +137,13 @@ end
     return (x1 >= 0) & (x2 >= 0) & (x3 >= 0) & (s <= 1)
 end
 
+# if everything is floats, we convert
 function intersection3D(p::Vector{Float64}, simplex::Matrix)
     sP = SVector{3}(p)
     sSimp = SMatrix{4,3}(simplex)
     return intersection3D(sP, sSimp)
 end
+
 
 
 end

@@ -36,15 +36,13 @@ function standardEstimator(points,depth = 9)
 end
 
 
-function DTFE(point,bvh,tetrahedra,tesselation)
+@views function DTFE(point,bvh,tetrahedra,tesselation)
 
     coords = tesselation.points
     simplices = coords[tetrahedra]
 
     i = findID(point,simplices,bvh)
-    if i == nothing
-        return 0
-    end
+    i === nothing && return 0
 
     tet = tetrahedra[i,:]
     simp = coords[tet]
