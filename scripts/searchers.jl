@@ -43,7 +43,7 @@ function findID(point,simplices, bvh::BVH)
 
     idx = earlyStopSearch(point,simplNeighborhood)
 
-   if idx == nothing
+   if idx === nothing
         return nothing
    end
 
@@ -57,7 +57,7 @@ function findID(point,simplices::Array, bvh::BVH)
 
     idx = earlyStopSearch(point,simplNeighborhood)
 
-    if idx == nothing
+    if idx === nothing
         return nothing
     end
 
@@ -72,7 +72,7 @@ function findID(point,simplices::Array{SVector{3,Float64},2}, bvh::BVH)
     idx = earlyStopSearch(point,simplNeighborhood)
 
 
-   if idx == nothing
+   if idx === nothing
         return nothing
    end
 
