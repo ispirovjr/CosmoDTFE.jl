@@ -6,7 +6,7 @@ using LinearAlgebra
 using KernelAbstractions
 using CUDA
 
-export standardEstimator, DTFE
+export standardEstimator, DTFE, DTFEMultiThread
 
 
 
@@ -118,9 +118,25 @@ function DTFECuda(points::Matrix, bvh, tetrahedra, tesselation) #Abandon until w
     return out
 end
 
-function DTFEMultiThread(points::Matrix, bvh, tetrahedra, tesselation)
-    #TODO
+# we multiprocess over the first dimension, so for heterogenious sampling, prioritize x size
+function DTFEMultiThread(points, bvh, tetrahedra, tesselation) #TODO see if we can elegantly decide which dim to mutithread
+
+    dens = zeros(size(points[1],1), size(points[2],1), size(points[3],1))
+
+
+    xs,ys,zs = points
+
+    Threads.@threads for i in eachindex(xs)
+    x = xs[i]
+    @inbounds for (j,y) in pairs(ys) 
+            @inbounds for (k,z) in pairs(zs)
+                dens[i,j,k] = DTFE([x,y,z], bvh, tetrahedra, tesselation) 
+            end
+        end
+    end
+    return dens
 end
+
 
 
 
