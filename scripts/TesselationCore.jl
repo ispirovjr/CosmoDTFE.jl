@@ -1,6 +1,6 @@
 module TesselationCore
 
-export Triangulation3D, tesselate, BVH, findSimplex, findID, point3, standardEstimator, DTFE
+export Triangulation3D, tesselate, BVH, findSimplex, findID, point3, standardEstimator, DTFE,DTFEMultiThread
 
 using StaticArrays
 using TetGen
@@ -18,7 +18,7 @@ include("searchers.jl")
 using .Searchers: recursiveSearch,  findSimplex, findID
 
 include("estimators.jl")
-using .Estimators: standardEstimator, DTFE
+using .Estimators: standardEstimator, DTFE, DTFEMultiThread
 
 end 
 
