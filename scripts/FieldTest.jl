@@ -49,6 +49,23 @@ Plots.heatmap(dens ./med,clim=(0,25))
 
 savefig("./Images/DenSlice.png")
 
+
+nSmall = 32
+dist = step*nSmall/2
+
+zs = z-dist:step:z+dist
+
+dens = TesselationCore.DTFEMultiThread([xs,ys,zs],bvh,tets,tes)
+med = median(dens)
+
+den = mean(dens ./med,dims=3)[:,:,1]
+
+Plots.heatmap(den,clim=(0,10))
+
+savefig("./Images/DenChunk.png")
+
+
+
 N = 256
 width = 75000
 step = width/N
