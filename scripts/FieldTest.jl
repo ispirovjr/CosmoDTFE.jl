@@ -1,7 +1,6 @@
 using TetGen
 using StaticArrays
 using JLD
-using BenchmarkTools
 using LinearAlgebra
 using Plots
 
