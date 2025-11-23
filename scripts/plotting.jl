@@ -2,6 +2,10 @@ module Plotting
 
 using GLMakie
 using ..Elements
+using JLD
+using ColorSchemes
+using Statistics
+using GLFW
 
 export plotTet
 
@@ -76,8 +80,51 @@ function plotTet!(ax::Axis3,tet::Tetrahedron; color=:blue, linewidth=2)
 
 end
 
+"""
+    render_volume(jldfile; dataset="dens", outfile="volume.png")
+
+Load a 3D array from a JLD/JLD2 file and render it as a volume plot to `outfile`.
+Works headlessly (e.g. SSH without screen).
+"""
+function renderVolume(jldfile; dataset="dens", outfile="volume.png")
+
+    # --- Load array ---
+    @assert isfile(jldfile) "JLD file not found: $jldfile"
+    @info "Loading $dataset from $jldfile"
+    data = load(jldfile, dataset)
+
+    @assert ndims(data) == 3 "Dataset must be 3D."
+
+    # --- Normalize data ---
+    normdata = data ./ median(data)
+
+    # --- Background color from Acton colormap ---
+    lowColor = get(ColorSchemes.acton, LinRange(0,1,256))[1]
 
 
+    GLMakie.activate!()    # ensure GL backend
+    GLFW.WindowHint(GLFW.VISIBLE, false)   # no on-screen window
 
+    fig = Figure(backgroundcolor=lowColor)
+    ax = LScene(fig[1,1], scenekw=(show_axis=false, backgroundcolor=lowColor))
+
+    # Volume plot
+    volume!(
+        ax,
+        normdata;
+        algorithm  = :mip,
+        colormap   = :acton,
+        colorrange = (0.0, 25)
+    )
+
+
+    # --- Save output ---
+    save(outfile, fig)
+    @info "Saved volume render to $outfile"
+end
+
+renderVolume("./saves/3Ddens.jld"; dataset="Density", outfile="./Images/densRender.png")
+
+#data = load("./saves/3Ddens.jld")
 
 end
