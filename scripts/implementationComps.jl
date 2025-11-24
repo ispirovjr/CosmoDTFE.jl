@@ -90,4 +90,29 @@ std(psStat)
 
 
 
+setups = ["Job, norma", "Me, local 1", "Me, local 4", "Me, norma 1", "Me, norma 4", "Me, norma 40"]
+times  = [100.5, 226.3, 74.6, 127.6, 35.6, 6.32]
+errors = [.6, 1.8, 9.2, .18, .16, .07]
 
+Plots.bar(
+    setups,
+    times,
+    yerror = errors,
+    xlabel = "Setup",
+    ylabel = "Time (s)",
+    title = "DTFE Performance Comparison",
+    legend = false
+)
+
+savefig("./Images/ComparisonBar.png")
+
+bar(
+    setups,
+    times,
+    yerror = errors,
+    xlabel = "Setup",
+    ylabel = "log(Time)",
+    title = "DTFE Performance (Log Scale)",
+    yscale = :log10,
+    legend = false
+)
