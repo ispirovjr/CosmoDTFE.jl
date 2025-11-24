@@ -1,5 +1,5 @@
 using StaticArrays
-using JLD
+using JLD2
 using BenchmarkTools
 using LinearAlgebra
 using Plots
@@ -26,7 +26,12 @@ gap = 1
 points = positions[:,1:gap:end]
 ps = [point3(points[1,i], points[2,i], points[3,i]) for i in 1:size(points,2)]
 
-bvh,tes,tets = TesselationCore.standardEstimator(ps,masses,10)
+bvh,tes,tets = TesselationCore.standardEstimator(ps,masses,9) 
+
+@save "./saves/dtfeEstimator.jld2" bvh tes tets # 25.7 Mb for depth 9
+
+print((Base.summarysize(bvh)+Base.summarysize(tes)+Base.summarysize(tets))/1e6)
+
 
 N = 32
 width = 75000
@@ -52,17 +57,31 @@ std(linStat)
 #235.360±1.345s
 #16.17 GiB
 
+#124.525±0.5 s --> single core on norma
+#16.17 GiB
+
 mean(parallelStat)
 std(parallelStat)
 #67.923±9.346s
 #16.17 GiB
 
+#6.175±0.1s --> 40 cores on norma
+#16.17 GiB
 
-using PhaseSpaceDTFE
+
+
+@load "./saves/dtfeEstimator.jld2" bvh tes tets
+
+
+
+using PhaseSpaceDTFE # run on norma - this is impossible locally
 
 simBox = SimBox(width,N)
-estimator = DTFE_periodic(points', masses, 10, simBox, pad=0)
-psBench = @benchmarkable [PhaseSpaceDTFE.density([x, y, z], dtfe) for x in xs, y in ys, z in zs]
+estimator = DTFE_periodic(points', masses, 3, simBox, pad=0)
+psBench = @benchmarkable [PhaseSpaceDTFE.density([x, y, z], estimator) for x in xs, y in ys, z in zs]
+
+@save "./saves/psEst.jld2" estimator # 121 Mb
+
 
 psStat = run(psBench)
 
@@ -71,4 +90,4 @@ std(psStat)
 
 
 
-# push!(time,mean(stats).time)
+
