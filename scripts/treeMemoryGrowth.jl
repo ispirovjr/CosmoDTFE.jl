@@ -93,3 +93,4 @@ plot!(depthsJob .* 3,sizeJob,
     label="Job Estimator",
 )
 
+savefig("./Images/DataGrowthComp.png")

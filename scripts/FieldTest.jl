@@ -1,6 +1,5 @@
-using TetGen
 using StaticArrays
-using JLD
+using JLD2
 using LinearAlgebra
 using Plots
 
@@ -13,60 +12,31 @@ BVH = TesselationCore.BVH
 point3 = TesselationCore.point3
 
 
-basePath = "../ThesisMaster/Illustris/";
+#basePath = "../ThesisMaster/Illustris/";
+basePath = "../DTFE/Illustris3/output"
 
-fields = ["SubhaloMass","SubhaloCM"];
-subhalos = il.groupcat.loadSubhalos(basePath,135,fields)
+fields = ["Masses","Coordinates","ParticleIDs"];
+load135 = il.snapshot.loadSubset(basePath,135,"gas",fields)
 
-positions = subhalos["SubhaloCM"]
+positions = load135["Coordinates"]
 
-gap = 1
-points = positions[:,1:gap:end]
+maxs = maximum(positions)/8
+
+mask = (positions[1, :] .<= maxs) .&
+       (positions[2, :] .<= maxs) .&
+       (positions[3, :] .<= maxs)
+
+points = positions[:,mask]
 ps = [point3(points[1,i], points[2,i], points[3,i]) for i in 1:size(points,2)]
 
 bvh,tes,tets = TesselationCore.standardEstimator(ps,10)
 
-N = 512
+@save "./saves/dtfeEstimatorEight.jld2" bvh tes tets
 
-width = 75000
+N = 128
 
-step = width/N
+width = maxs
 
-
-xs = bvh.bbox[1,1]:step:bvh.bbox[1,2]
-ys = bvh.bbox[2,1]:step:bvh.bbox[2,2]
-
-z = (bvh.bbox[3,2] + bvh.bbox[3,1])/2
-
-
-println("Slice")
-
-dens = TesselationCore.DTFEMultiThread([xs,ys,z],bvh,tets,tes)[:,:,1]
-med = median(dens)
-
-Plots.heatmap(dens ./med,clim=(0,25))
-
-savefig("./Images/DenSlice.png")
-
-
-nSmall = 32
-dist = step*nSmall/2
-
-zs = z-dist:step:z+dist
-
-dens = TesselationCore.DTFEMultiThread([xs,ys,zs],bvh,tets,tes)
-med = median(dens)
-
-den = mean(dens ./med,dims=3)[:,:,1]
-
-Plots.heatmap(den,clim=(0,10))
-
-savefig("./Images/DenChunk.png")
-
-
-
-N = 256
-width = 75000
 step = width/N
 
 xs = bvh.bbox[1,1]:step:bvh.bbox[1,2]
@@ -78,5 +48,4 @@ println("Fat Chunk")
 
 dens = TesselationCore.DTFEMultiThread([xs,ys,zs],bvh,tets,tes)
 
-
-save("../saves/3Ddens.jld", dens, )  
+@save "./saves/3DdensEight.jld2" dens
