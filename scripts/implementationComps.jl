@@ -26,7 +26,7 @@ gap = 1
 points = positions[:,1:gap:end]
 ps = [point3(points[1,i], points[2,i], points[3,i]) for i in 1:size(points,2)]
 
-bvh,tes,tets = TesselationCore.standardEstimator(ps,masses,9) 
+bvh,tes,tets = TesselationCore.standardEstimator(ps,masses,9);
 
 @save "./saves/dtfeEstimator.jld2" bvh tes tets # 25.7 Mb for depth 9
 
