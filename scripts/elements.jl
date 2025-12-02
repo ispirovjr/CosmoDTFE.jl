@@ -16,7 +16,7 @@ end
 
 struct Triangulation3D
     points::Vector{point3}
-    ρStar::Vector{Float64}
+    ρStar::Vector
     
 end
 
@@ -50,7 +50,7 @@ function Triangulation3D(points::Vector{point3},tets::Matrix)
     return Triangulation3D(points,tets,weights)
 end
 
-function Triangulation3D(points::Vector{point3},tets::Matrix,weights::Vector{Float64}) #TODO optimize
+function Triangulation3D(points::Vector{point3},tets::Matrix,weights::Vector) #TODO optimize
     rhos = zeros(size(points))
     
     for tet in eachrow(tets)
