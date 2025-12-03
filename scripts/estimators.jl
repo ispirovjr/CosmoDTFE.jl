@@ -48,9 +48,16 @@ end
     simp = coords[tet]
     rhos = tesselation.ρStar[tet]
 
-    delRho=invertClassic(rhos,simp)
+#    delRho=invertClassic(rhos,simp)
 
-    interpolation = rhos[1] + dot((point - simp[1]),delRho)
+    v1 = simp[1]
+    invM = inv(SMatrix{3,3}(hcat(simp[2]-v1, simp[3]-v1, simp[4]-v1)))
+    diff = point - v1
+    λ234 = invM * diff
+    λ1   = 1 - sum(λ234)
+    interpolation = λ1*rhos[1] + λ234[1]*rhos[2] + λ234[2]*rhos[3] + λ234[3]*rhos[4]
+
+    #interpolation = rhos[1] + dot((point - simp[1]),delRho)
 
     return interpolation
 end
@@ -68,6 +75,8 @@ end
     
     return inv(mat)*r
 end
+
+
 
 @inline function invertGPU(rhos, simplex)
     r = rhos[2:end] .- rhos[1]

@@ -1,46 +1,31 @@
-using TetGen
 using StaticArrays
 using GLMakie
-using JLD
+using JLD2
 
-using .TesselationCore
+using Statistics
+using ColorSchemes
 
-points3d = [point3(@SVector rand(3)) for _ in 1:50]
+@load "./saves/3DdensEight.jld2" dens
 
+normdata = dens ./ median(dens);
 
-
-coords, tets = TesselationCore.tesselate(points3d)
-
-tets
-
-#TODO Create Tesselation Constructor
-#TODO Plot Tet -> Plot Tesselation (run each child)
-
-fig = Figure()
-ax = Axis3(fig[1, 1], title="Tesselation", aspect=:data)
+lowColor = get(ColorSchemes.acton, LinRange(0,1,256))[1]
 
 
-i = 0
-for tet in eachrow(tets)
-    
-    pos = coords[:,tet]    #get 3x4 coords
-    posEs = ntuple(j -> point3(pos[:,j]),4)
+fig = Figure(backgroundcolor=lowColor)
+ax = LScene(fig[1,1], scenekw=(show_axis=false, backgroundcolor=lowColor))
 
-    tetro = TesselationCore.Tetrahedron(posEs)
-    
-    TesselationCore.plotTet!(ax,tetro)
-    
-    i+=1
-end
+maximum(normdata)
+
+volume!(
+    ax,
+    normdata;
+    algorithm  = :mip,
+    colormap   = :acton,
+)
 
 fig
 
-save("./Images/3D.png", fig)
 
-
-w = ones(50)
-
-tes = Triangulation3D(points3d,tets',w)
-
-
-tes.ρStar
+using JLD
+JLD.save("./Images/ImprovedParticles.png", fig)

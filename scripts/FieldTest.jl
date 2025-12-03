@@ -20,22 +20,25 @@ load135 = il.snapshot.loadSubset(basePath,135,"gas",fields)
 
 positions = load135["Coordinates"]
 
-maxs = maximum(positions)/8
+lim = maximum(positions)/8
 
-mask = (positions[1, :] .<= maxs) .&
-       (positions[2, :] .<= maxs) .&
-       (positions[3, :] .<= maxs)
+mask = (positions[1, :] .<= lim*2) .&
+       (positions[1, :] .>= lim) .&
+       (positions[2, :] .<= lim*2) .&
+       (positions[2, :] .>= lim) .&
+       (positions[3, :] .<= lim*2) .&
+       (positions[3, :] .>= lim)
 
 points = positions[:,mask]
 ps = [point3(points[1,i], points[2,i], points[3,i]) for i in 1:size(points,2)]
 
-bvh,tes,tets = TesselationCore.standardEstimator(ps,10)
+bvh,tes,tets = TesselationCore.standardEstimator(ps,13);
 
-@save "./saves/dtfeEstimatorEight.jld2" bvh tes tets
+@save "./saves/dtfeEstimatorTenth.jld2" bvh tes tets
 
 N = 128
 
-width = maxs
+width = lim
 
 step = width/N
 
@@ -49,3 +52,16 @@ println("Fat Chunk")
 dens = TesselationCore.DTFEMultiThread([xs,ys,zs],bvh,tets,tes)
 
 @save "./saves/3DdensEight.jld2" dens
+
+@load "./saves/3DdensEight.jld2" dens
+
+using Statistics
+
+dens = dens ./ median(dens)
+
+minimum(dens)
+
+Plots.heatmap(sum(dens,dims=3)[:,:,1])
+
+Plots.heatmap(sum(dens[5:end-5,5:end-5,31:35],dims=3)[:,:,1])
+
