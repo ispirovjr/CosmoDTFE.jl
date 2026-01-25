@@ -5,7 +5,7 @@ using JLD2
 using Statistics
 using ColorSchemes
 
-@load "./saves/3DdensEight.jld2" dens
+@load "./saves/3DhaloGood.jld2" dens
 
 normdata = dens ./ median(dens);
 
@@ -28,4 +28,4 @@ fig
 
 
 using JLD
-JLD.save("./Images/ImprovedParticles.png", fig)
+JLD.save("./Images/HalosBetter.png", fig)

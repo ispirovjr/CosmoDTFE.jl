@@ -15,30 +15,22 @@ point3 = TesselationCore.point3
 #basePath = "../ThesisMaster/Illustris/";
 basePath = "../DTFE/Illustris3/output"
 
-fields = ["Masses","Coordinates","ParticleIDs"];
-load135 = il.snapshot.loadSubset(basePath,135,"gas",fields)
+fields = ["SubhaloMass","SubhaloCM"];
+subhalos = il.groupcat.loadSubhalos(basePath,135,fields)
 
-positions = load135["Coordinates"]
 
-lim = maximum(positions)/8
+positions = subhalos["SubhaloCM"]
 
-mask = (positions[1, :] .<= lim*2) .&
-       (positions[1, :] .>= lim) .&
-       (positions[2, :] .<= lim*2) .&
-       (positions[2, :] .>= lim) .&
-       (positions[3, :] .<= lim*2) .&
-       (positions[3, :] .>= lim)
-
-points = positions[:,mask]
+points = positions#[:,mask]
 ps = [point3(points[1,i], points[2,i], points[3,i]) for i in 1:size(points,2)]
 
-bvh,tes,tets = TesselationCore.standardEstimator(ps,13);
+bvh,tes,tets = TesselationCore.standardEstimator(ps,12);
 
 @save "./saves/dtfeEstimatorTenth.jld2" bvh tes tets
 
 N = 128
 
-width = lim
+width = 75000#lim
 
 step = width/N
 
@@ -51,7 +43,7 @@ println("Fat Chunk")
 
 dens = TesselationCore.DTFEMultiThread([xs,ys,zs],bvh,tets,tes)
 
-@save "./saves/3DdensEight.jld2" dens
+@save "./saves/3DhaloGood.jld2" dens
 
 @load "./saves/3DdensEight.jld2" dens
 
