@@ -1,6 +1,4 @@
 # Elements - Core data structures for DTFE
-#
-# Provides Point3, Tetrahedron, and Triangulation3D types.
 
 """3D point type using StaticArrays for performance."""
 const Point3 = SVector{3,Float64}
@@ -10,10 +8,6 @@ const Point3 = SVector{3,Float64}
     Tetrahedron
 
 A tetrahedron defined by 4 vertices with precomputed volume.
-
-# Fields
-- `verts::NTuple{4, Point3}`: The 4 vertices
-- `vol::Float64`: Precomputed volume
 """
 struct Tetrahedron
     verts::NTuple{4,Point3}
@@ -25,10 +19,6 @@ end
     Triangulation3D
 
 Result of Delaunay tessellation with per-vertex density estimates.
-
-# Fields
-- `points::Vector{Point3}`: Original point cloud
-- `rhoStar::Vector{Float64}`: Density estimate at each point
 """
 struct Triangulation3D
     points::Vector{Point3}
@@ -49,7 +39,7 @@ function computeVolume(verts)
     return abs(dot(a, cross(b, c))) / 6
 end
 
-function computeVolume(verts::Matrix)
+function computeVolume(verts::AbstractMatrix)
     v1, v2, v3, v4 = eachcol(verts)
     a = v2 - v1
     b = v3 - v1
@@ -64,19 +54,30 @@ function Tetrahedron(verts::NTuple{4,Point3})
 end
 
 
-function Triangulation3D(points::Vector{Point3}, tets::Matrix)
+function Triangulation3D(points::Vector{Point3}, tets::AbstractMatrix)
     weights = ones(length(points))
     return Triangulation3D(points, tets, weights)
 end
 
-function Triangulation3D(points::Vector{Point3}, tets::Matrix, weights::Vector)
-    rhos = zeros(length(points))
+function Triangulation3D(points::Vector{Point3}, tets::AbstractMatrix, weights::Vector)
+    # DTFE density formula: ρ*ᵢ = (d+1) * wᵢ / Σⱼ Vⱼ
 
-    for tet in eachrow(tets)
+    nPoints = length(points)
+    rhos = zeros(nPoints)
+
+    #accumulate contiguous volume for each vertex
+    @inbounds for tet in eachrow(tets)
         pos = points[tet]
         vol = computeVolume(pos)
         for i in tet
-            rhos[i] += weights[i] / vol
+            rhos[i] += vol
+        end
+    end
+
+    #compute density using DTFE formula in-place
+    @inbounds for i in 1:nPoints
+        if rhos[i] > 0
+            rhos[i] = 4.0 * weights[i] / rhos[i]
         end
     end
 

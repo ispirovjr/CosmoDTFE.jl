@@ -42,38 +42,16 @@ end
 Find the index of the simplex containing the given point.
 Returns `nothing` if point is outside all simplices.
 """
-function findId(point, simplices, bvh::BoundingVolumeHierarchy)
-    indices = recursiveSearch(point, bvh.tree, bvh.bbox)
-
-    simplexNeighborhood = simplices[indices, :]
-
-    idx = earlyStopSearch(point, simplexNeighborhood)
-
-    if idx === nothing
-        return nothing
-    end
-
-    return indices[idx]
+function findId(point::AbstractVector, simplices::AbstractMatrix, bvh::BoundingVolumeHierarchy)
+    # Convert point to SVector once for performance
+    p = SVector{3,Float64}(point)
+    return findId(p, simplices, bvh)
 end
 
-function findId(point, simplices::Array, bvh::BoundingVolumeHierarchy)
+function findId(point::SVector{3,Float64}, simplices::AbstractMatrix, bvh::BoundingVolumeHierarchy)
     indices = recursiveSearch(point, bvh.tree, bvh.bbox)
 
-    simplexNeighborhood = simplices[:, indices, :]
-
-    idx = earlyStopSearch(point, simplexNeighborhood)
-
-    if idx === nothing
-        return nothing
-    end
-
-    return indices[idx]
-end
-
-function findId(point, simplices::Array{SVector{3,Float64},2}, bvh::BoundingVolumeHierarchy)
-    indices = recursiveSearch(point, bvh.tree, bvh.bbox)
-
-    simplexNeighborhood = simplices[indices, :]
+    simplexNeighborhood = @view simplices[indices, :]
 
     idx = earlyStopSearch(point, simplexNeighborhood)
 
@@ -85,12 +63,19 @@ function findId(point, simplices::Array{SVector{3,Float64},2}, bvh::BoundingVolu
 end
 
 
-function earlyStopSearch(p::Vector, simplices::Matrix)
+function earlyStopSearch(p::SVector{3,Float64}, simplices::AbstractMatrix)
     for (i, s) in pairs(eachrow(simplices))
         if intersection3D(p, s)
             return i
         end
     end
+    return nothing
+end
+
+# Fallback for non-SVector inputs (if called directly)
+function earlyStopSearch(p::AbstractVector, simplices::AbstractMatrix)
+    p_static = SVector{3,Float64}(p)
+    return earlyStopSearch(p_static, simplices)
 end
 
 # Optimal path: StaticArrays with Cramer's rule
@@ -113,11 +98,9 @@ end
     return (x1 >= 0) & (x2 >= 0) & (x3 >= 0) & (s <= 1)
 end
 
-# Float vector with generic simplex type
-@inline function intersection3D(point::Vector{Float64}, simplex)
+# Generic optimized path: SVector point, generic simplex (e.g. view of SVector array)
+@inline function intersection3D(p::SVector{3,Float64}, simplex)
     @inbounds begin
-        p = SVector{3,Float64}(point)
-
         v1, v2, v3, v4 = simplex[1], simplex[2], simplex[3], simplex[4]
         a = v2 - v1
         b = v3 - v1
@@ -134,8 +117,13 @@ end
     return (x1 >= 0) & (x2 >= 0) & (x3 >= 0) & (s <= 1)
 end
 
+# Fallback for non-SVector inputs to intersection3D
+@inline function intersection3D(point::AbstractVector, simplex)
+    return intersection3D(SVector{3,Float64}(point), simplex)
+end
+
 # Matrix input: convert to StaticArrays
-function intersection3D(p::Vector{Float64}, simplex::Matrix)
+function intersection3D(p::AbstractVector, simplex::Matrix)
     sP = SVector{3}(p)
     sSimp = SMatrix{4,3}(simplex)
     return intersection3D(sP, sSimp)

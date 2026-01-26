@@ -46,10 +46,28 @@ using JuliaDTFE
         @test JuliaDTFE.intersection3D(outside, simplex) == false
     end
 
-    @testset "findId returns correct index" begin
-        # TODO: Integration test with BVH
-        # This requires building a full BVH structure
-        @test_skip "findId requires BVH integration test"
+    @testset "findId with BVH integration" begin
+        # Create point cloud and build DTFE structure
+        points = [Point3(rand(), rand(), rand()) for _ in 1:50]
+        bvh, triangulation, tets = standardEstimator(points, 6)
+
+        # Build simplices array for findId
+        simplices = triangulation.points[tets]
+
+        # Test point inside domain - should find a valid tetrahedron
+        testPoint = [0.5, 0.5, 0.5]
+        idx = findId(testPoint, simplices, bvh)
+
+        # If point is inside convex hull, should return valid index
+        if idx !== nothing
+            @test idx >= 1
+            @test idx <= size(tets, 1)
+        end
+
+        # Test point far outside - should return nothing
+        outsidePoint = [100.0, 100.0, 100.0]
+        outsideIdx = findId(outsidePoint, simplices, bvh)
+        @test outsideIdx === nothing
     end
 
 end

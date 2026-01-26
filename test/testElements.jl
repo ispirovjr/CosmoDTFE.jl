@@ -31,10 +31,37 @@ using JuliaDTFE
         @test tet.vol ≈ 1 / 6  # Volume of unit tetrahedron
     end
 
+    @testset "computeVolume correctness" begin
+        # Unit tetrahedron: volume = 1/6
+        v1 = Point3(0.0, 0.0, 0.0)
+        v2 = Point3(1.0, 0.0, 0.0)
+        v3 = Point3(0.0, 1.0, 0.0)
+        v4 = Point3(0.0, 0.0, 1.0)
+        verts = (v1, v2, v3, v4)
+
+        @test JuliaDTFE.computeVolume(verts) ≈ 1 / 6
+
+        # Scaled tetrahedron: scale by 2 -> volume scales by 8
+        scaledVerts = (2 * v1, 2 * v2, 2 * v3, 2 * v4)
+        @test JuliaDTFE.computeVolume(scaledVerts) ≈ 8 / 6
+
+        # Matrix input
+        vertMatrix = [0.0 1.0 0.0 0.0; 0.0 0.0 1.0 0.0; 0.0 0.0 0.0 1.0]
+        @test JuliaDTFE.computeVolume(vertMatrix) ≈ 1 / 6
+    end
+
     @testset "Triangulation3D construction" begin
-        # TODO: Add tests for Triangulation3D with tessellation
-        # This requires integration with TetGen
-        @test_skip "Triangulation3D requires tessellation integration"
+        # Create simple point cloud and tessellate
+        points = [Point3(rand(), rand(), rand()) for _ in 1:30]
+        coords, tets = tessellate(points)
+
+        # Build Triangulation3D with uniform weights
+        triangulation = Triangulation3D(points, tets)
+
+        @test length(triangulation.points) == 30
+        @test length(triangulation.rhoStar) == 30
+        @test all(isfinite.(triangulation.rhoStar))
+        @test all(triangulation.rhoStar .> 0)  # Densities should be positive
     end
 
 end

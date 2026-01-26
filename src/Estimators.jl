@@ -1,6 +1,5 @@
 # Estimators - DTFE density estimation functions
-#
-# Provides CPU and GPU implementations for density field estimation.
+
 
 """
     standardEstimator(points, weights::Vector, depth=9)
@@ -14,7 +13,7 @@ Build a DTFE estimator from a point cloud with weights.
 """
 function standardEstimator(points, weights::Vector, depth::Int=9)
     coords, tets = tessellate(points)
-    triangulation = Triangulation3D(points, tets', weights)
+    triangulation = Triangulation3D(points, tets, weights)  # tets is M×4, rows are tets
 
     simplices = coords[:, tets]
     bvh = BoundingVolumeHierarchy(simplices, depth)
@@ -29,7 +28,7 @@ Build a DTFE estimator from a point cloud with uniform weights.
 """
 function standardEstimator(points, depth::Int=9)
     coords, tets = tessellate(points)
-    triangulation = Triangulation3D(points, tets')
+    triangulation = Triangulation3D(points, tets)  # tets is M×4, rows are tets
 
     simplices = coords[:, tets]
     bvh = BoundingVolumeHierarchy(simplices, depth)
