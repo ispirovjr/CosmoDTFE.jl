@@ -74,8 +74,8 @@ end
 
 # Fallback for non-SVector inputs (if called directly)
 function earlyStopSearch(p::AbstractVector, simplices::AbstractMatrix)
-    p_static = SVector{3,Float64}(p)
-    return earlyStopSearch(p_static, simplices)
+    pStatic = SVector{3,Float64}(p)
+    return earlyStopSearch(pStatic, simplices)
 end
 
 # Optimal path: StaticArrays with Cramer's rule

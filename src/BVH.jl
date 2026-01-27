@@ -3,6 +3,14 @@
 # Provides BVHTree abstract type with BVHLeaf and BVHNode, plus
 # BoundingVolumeHierarchy wrapper for tetrahedra lookups.
 
+
+# When operating in BVH, I use simplices rank 3 arrays. This is for memory efficiency and speed.
+# Because I realize it can be confusing, I will explain the convention here:
+# Simplices have dimensions [3,N,4] where the first dimension is x, y or z,
+# the second is the index of the simplex and the third is the vertex of the simplex.
+# It may be odd that the vertices are in the third dimension and the second counts up, but that
+# way converting to bounding boxes is more simple.
+
 """
     BVHTree
 
@@ -44,8 +52,25 @@ struct BoundingVolumeHierarchy
 end
 
 
+
 function cornerSimplexMatrix(simplex)
-    return hcat(minimum(simplex, dims=1)', maximum(simplex, dims=1)')
+    return hcat(minimum(simplex, dims=2), maximum(simplex, dims=2))
+end
+
+
+# Equality operators for ease
+function Base.:(==)(a::BVHLeaf, b::BVHLeaf)
+    return Set(a.data) == Set(b.data)
+end
+
+function Base.:(==)(a::BVHNode, b::BVHNode)
+    return a.depth == b.depth &&
+           a.leftChild == b.leftChild &&
+           a.rightChild == b.rightChild
+end
+
+function Base.:(==)(a::BoundingVolumeHierarchy, b::BoundingVolumeHierarchy)
+    return a.tree == b.tree && a.bbox == b.bbox
 end
 
 
@@ -53,13 +78,19 @@ end
     getBoxes(data)
 
 Compute the bounding boxes for all simplices in the dataset.
+
+    The boxes follow the size [3,N,2] where the first dimension is x, y or z,
+    the second is the index of the simplex and the third is the minimum or maximum value.
 """
 function getBoxes(data::Vector)
     permutedims(stack(cornerSimplexMatrix.(data)), (1, 3, 2))
 end
 
-function getBoxes(data::AbstractArray{T,3}) where T
-    cat(minimum(data, dims=3), maximum(data, dims=3), dims=3)
+function getBoxes(data::AbstractArray{T,3}) where T # casue there is no general Float type
+
+    minVals = dropdims(minimum(data, dims=3), dims=3)
+    maxVals = dropdims(maximum(data, dims=3), dims=3)
+    return cat(minVals, maxVals, dims=3)
 end
 
 
@@ -127,4 +158,33 @@ function generateBvhTree(boxes, depth::Int, limBox::Matrix, indices)
     return BVHNode(depth,
         generateBvhTree(boxes, depth - 1, leftBox, leftIds),
         generateBvhTree(boxes, depth - 1, rightBox, rightIds))
+end
+
+
+# Pretty printing vibe coded
+function Base.show(io::IO, ::MIME"text/plain", bvh::BoundingVolumeHierarchy)
+    println(io, "BoundingVolumeHierarchy")
+    println(io, "  Bounds: ", bvh.bbox)
+    print(io, "  Tree:")
+    showTree(io, bvh.tree, "  ", true)
+end
+
+function showTree(io::IO, node::BVHNode, prefix::String, isLast::Bool)
+    println(io)
+    print(io, prefix, isLast ? "└─ " : "├─ ")
+    print(io, "Node (Depth $(node.depth))")
+
+    newPrefix = prefix * (isLast ? "   " : "│  ")
+    showTree(io, node.leftChild, newPrefix, false)
+    showTree(io, node.rightChild, newPrefix, true)
+end
+
+function showTree(io::IO, leaf::BVHLeaf, prefix::String, isLast::Bool)
+    println(io)
+    print(io, prefix, isLast ? "└─ " : "├─ ")
+    if length(leaf.data) <= 10
+        print(io, "Leaf: ", leaf.data)
+    else
+        print(io, "Leaf ($(length(leaf.data)) elements): ", leaf.data[1:5], "...")
+    end
 end

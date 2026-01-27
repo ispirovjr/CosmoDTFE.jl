@@ -5,7 +5,7 @@ using JuliaDTFE
 @testset "Tessellate" begin
 
     @testset "tessellate with Point3 vector" begin
-        # Create random point cloud
+
         points = [Point3(rand(), rand(), rand()) for _ in 1:20]
 
         coords, tets = tessellate(points)
@@ -42,7 +42,6 @@ using JuliaDTFE
 
         coords, tets = tessellate(cubePoints)
 
-        # Cube should produce 5-6 tetrahedra typically
         @test size(tets, 1) >= 5
     end
 

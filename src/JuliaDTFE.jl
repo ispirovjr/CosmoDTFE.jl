@@ -43,6 +43,6 @@ export Point3, Tetrahedron, Triangulation3D
 export BoundingVolumeHierarchy, BVHTree, BVHLeaf, BVHNode
 export tessellate
 export findSimplex, findId, recursiveSearch
-export standardEstimator, dtfe, dtfeMultiThread
+export dtfe, dtfeMultiThread, DensityEstimator
 
 end # module

@@ -32,7 +32,7 @@ using JuliaDTFE
     end
 
     @testset "computeVolume correctness" begin
-        # Unit tetrahedron: volume = 1/6
+
         v1 = Point3(0.0, 0.0, 0.0)
         v2 = Point3(1.0, 0.0, 0.0)
         v3 = Point3(0.0, 1.0, 0.0)
@@ -55,7 +55,6 @@ using JuliaDTFE
         points = [Point3(rand(), rand(), rand()) for _ in 1:30]
         coords, tets = tessellate(points)
 
-        # Build Triangulation3D with uniform weights
         triangulation = Triangulation3D(points, tets)
 
         @test length(triangulation.points) == 30
