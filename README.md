@@ -83,7 +83,7 @@ densityGrid = est((xs, ys, zs)) # for grid
 JuliaDTFE/
 ├── src/
 │   ├── JuliaDTFE.jl      # Main module
-│   ├── Elements.jl       # Core types: Point3, Tetrahedron, Triangulation3D
+│   ├── Elements.jl       # Core types: Point3, Triangulation3D
 │   ├── BVH.jl            # Bounding Volume Hierarchy for spatial queries
 │   ├── Tessellate.jl     # TetGen wrapper for Delaunay tessellation
 │   ├── Searchers.jl      # Point-in-tetrahedron search algorithms

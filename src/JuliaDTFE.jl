@@ -13,7 +13,6 @@ Delaunay tessellation with BVH-accelerated spatial queries.
 
 # Main Types
 - `Point3`: 3D point type (SVector{3, Float64})
-- `Tetrahedron`: Tetrahedron with vertices and volume
 - `Triangulation3D`: Tessellation with density estimates
 - `BoundingVolumeHierarchy`: BVH for fast lookups
 
@@ -35,10 +34,11 @@ include("Searchers.jl")
 include("Estimators.jl")
 
 # Public API exports
-export Point3, Tetrahedron, Triangulation3D
+export Point3, Triangulation3D
 export BoundingVolumeHierarchy, BVHTree, BVHLeaf, BVHNode
 export tessellate
 export findSimplex, findId, recursiveSearch
 export dtfe, dtfeMultiThread, DensityEstimator
+export VelocityEstimator, velocityGradient
 
 end # module

@@ -62,6 +62,29 @@ function findId(point::SVector{3,Float64}, simplices::AbstractMatrix, bvh::Bound
     return indices[idx]
 end
 
+"""
+    findId(point, coords, tetrahedra, bvh)
+
+Memory-efficient implementation that avoids allocating the full simplex list.
+"""
+function findId(point::AbstractVector, coords::AbstractVector, tetrahedra::AbstractMatrix{<:Integer}, bvh::BoundingVolumeHierarchy)
+    p = SVector{3,Float64}(point)
+    indices = recursiveSearch(p, bvh.tree, bvh.bbox)
+
+    for idx in indices
+        # Construct simplex vertices on the fly (no allocation)
+        v1 = coords[tetrahedra[idx, 1]]
+        v2 = coords[tetrahedra[idx, 2]]
+        v3 = coords[tetrahedra[idx, 3]]
+        v4 = coords[tetrahedra[idx, 4]]
+
+        if intersection3D(p, (v1, v2, v3, v4))
+            return idx
+        end
+    end
+    return nothing
+end
+
 
 function earlyStopSearch(p::SVector{3,Float64}, simplices::AbstractMatrix)
     for (i, s) in pairs(eachrow(simplices))

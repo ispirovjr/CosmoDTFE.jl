@@ -4,16 +4,6 @@
 const Point3 = SVector{3,Float64}
 
 
-"""
-    Tetrahedron
-
-A tetrahedron defined by 4 vertices with precomputed volume.
-"""
-struct Tetrahedron
-    verts::NTuple{4,Point3}
-    vol::Float64
-end
-
 
 """
     Triangulation3D
@@ -48,10 +38,6 @@ function computeVolume(verts::AbstractMatrix)
 end
 
 
-function Tetrahedron(verts::NTuple{4,Point3})
-    vol = computeVolume(verts)
-    return Tetrahedron(verts, vol)
-end
 
 
 function Triangulation3D(points::Vector{Point3}, tets::AbstractMatrix)

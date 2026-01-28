@@ -17,20 +17,6 @@ using JuliaDTFE
         @test p + p2 == Point3(5.0, 7.0, 9.0)
     end
 
-    @testset "Tetrahedron construction" begin
-        # Create a simple tetrahedron
-        v1 = Point3(0.0, 0.0, 0.0)
-        v2 = Point3(1.0, 0.0, 0.0)
-        v3 = Point3(0.0, 1.0, 0.0)
-        v4 = Point3(0.0, 0.0, 1.0)
-        verts = (v1, v2, v3, v4)
-
-        tet = Tetrahedron(verts)
-
-        @test tet.verts == verts
-        @test tet.vol ≈ 1 / 6  # Volume of unit tetrahedron
-    end
-
     @testset "computeVolume correctness" begin
 
         v1 = Point3(0.0, 0.0, 0.0)
