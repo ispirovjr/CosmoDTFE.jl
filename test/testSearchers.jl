@@ -47,7 +47,10 @@ using JuliaDTFE
     @testset "findId with BVH integration" begin
 
         points = [Point3(rand(), rand(), rand()) for _ in 1:50]
-        bvh, triangulation, tets = standardEstimator(points, 6)
+        est = DensityEstimator(points, 6)
+        bvh = est.bvh
+        triangulation = est.triangulation
+        tets = est.tetrahedra
 
         simplices = triangulation.points[tets]
 

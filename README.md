@@ -42,11 +42,6 @@ All of this is initialized when calling the `DensityEstimator` constructor.
 To interpotale, we simply call the density estimator functor, as seen in the quick start example.
 
 
-### Key Features
-
-- **BVH-accelerated spatial queries** - O(log n) point location for efficient lookups in large datasets.
-- **Multi-threaded grid evaluation** - Parallel computation when estimating density fields on grids or large lists of points.
-- **GPU acceleration** - Experimental CUDA support via KernelAbstractions.
 
 ## Installation
 
