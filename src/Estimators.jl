@@ -232,7 +232,7 @@ function velocityGradient(est::VelocityEstimator, point::AbstractVector{<:Real})
     λ1 = 1.0 - sum(λ234)
 
     # v(x) = Σ λ_i v_i
-    v_interp = λ1 * vel1 + λ234[1] * vel2 + λ234[2] * vel3 + λ234[3] * vel4
+    vInterp = λ1 * vel1 + λ234[1] * vel2 + λ234[2] * vel3 + λ234[3] * vel4
 
     dV = SMatrix{3,3}(hcat(vel2 - vel1, vel3 - vel1, vel4 - vel1))
 
@@ -251,7 +251,7 @@ function velocityGradient(est::VelocityEstimator, point::AbstractVector{<:Real})
         J[2, 1] - J[1, 2]
     )
 
-    return (v_interp, div, shear, vorticity)
+    return (vInterp, div, shear, vorticity)
 end
 
 # -----------------------------------------------------------------------------

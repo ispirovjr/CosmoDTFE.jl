@@ -24,6 +24,7 @@ module JuliaDTFE
 
 using StaticArrays
 using TetGen
+using Quickhull
 using LinearAlgebra
 
 # Core components (plain includes, no submodules)
@@ -36,7 +37,7 @@ include("Estimators.jl")
 # Public API exports
 export Point3, Triangulation3D
 export BoundingVolumeHierarchy, BVHTree, BVHLeaf, BVHNode
-export tessellate
+export tessellate, tessellateQH
 export findSimplex, findId, recursiveSearch
 export dtfe, dtfeMultiThread, DensityEstimator
 export VelocityEstimator, velocityGradient
