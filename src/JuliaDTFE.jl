@@ -39,7 +39,7 @@ export Point3, Triangulation3D
 export BoundingVolumeHierarchy, BVHTree, BVHLeaf, BVHNode
 export tessellate, tessellateQH
 export findSimplex, findId, recursiveSearch
-export dtfe, dtfeMultiThread, DensityEstimator
+export dtfe, DensityEstimator
 export VelocityEstimator, velocityGradient
 
 end # module

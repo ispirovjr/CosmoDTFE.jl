@@ -119,6 +119,7 @@ end
 Build a DTFE velocity estimator from a point cloud and associated velocities.
 """
 function VelocityEstimator(points, velocities::Vector, depth::Int=9)
+    length(velocities) == length(points) || throw(ArgumentError("length of velocities must match length of points"))
     coords, tets = tessellate(points)
     triangulation = Triangulation3D(points, tets) # Reusing existing Triangulation3D for topology
 
@@ -138,6 +139,7 @@ end
 Build a VelocityEstimator reusing the topology from a DensityEstimator.
 """
 function VelocityEstimator(est::DensityEstimator, velocities::Vector)
+    length(velocities) == length(est.triangulation.points) || throw(ArgumentError("length of velocities must match length of points"))
     vels = [SVector{3,Float64}(v) for v in velocities]
     return VelocityEstimator(est.bvh, est.triangulation, est.tetrahedra, vels)
 end

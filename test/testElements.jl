@@ -47,6 +47,10 @@ using JuliaDTFE
         @test length(triangulation.rhoStar) == 30
         @test all(isfinite.(triangulation.rhoStar))
         @test all(triangulation.rhoStar .> 0)  # Densities should be positive
+
+        # Bounds check tests
+        bad_weights = rand(29) # Deliberately shorter weights vector
+        @test_throws ArgumentError Triangulation3D(points, tets, bad_weights)
     end
 
 end

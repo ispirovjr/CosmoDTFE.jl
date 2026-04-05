@@ -32,8 +32,9 @@ function findSimplex(point, simplices, bvh::BoundingVolumeHierarchy)
     simplexNeighborhood = simplices[indices, :]
 
     idx = earlyStopSearch(point, simplexNeighborhood)
-
-    return simplexNeighborhood[idx]
+    
+    idx === nothing && return nothing
+    return simplexNeighborhood[idx,:]
 end
 
 """

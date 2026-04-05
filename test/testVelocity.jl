@@ -101,4 +101,14 @@ end
         expected_shear = SMatrix{3,3,Float64}(0, 1, 0, 1, 0, 0, 0, 0, 0)
         @test shear ≈ expected_shear
     end
+
+    @testset "Bounds Checking" begin
+        points_bad = make_grid_points(2) # 8 points
+        velocities_bad = [SVector(0.0, 0.0, 0.0) for _ in 1:7] # Only 7 velocities
+
+        @test_throws ArgumentError VelocityEstimator(points_bad, velocities_bad)
+
+        est_den = DensityEstimator(points_bad)
+        @test_throws ArgumentError VelocityEstimator(est_den, velocities_bad)
+    end
 end
