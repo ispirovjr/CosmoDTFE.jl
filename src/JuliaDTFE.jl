@@ -34,7 +34,7 @@ include("BVH.jl")
 include("Tessellate.jl")
 include("Searchers.jl")
 include("Estimators.jl")
-include("compositeEstimators.jl")
+include("CompositeEstimators.jl")
 
 # Public API exports
 export Point3, Triangulation3D
