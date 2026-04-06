@@ -26,6 +26,7 @@ using StaticArrays
 using TetGen
 using Quickhull
 using LinearAlgebra
+using Statistics
 
 # Core components (plain includes, no submodules)
 include("Elements.jl")
@@ -33,6 +34,7 @@ include("BVH.jl")
 include("Tessellate.jl")
 include("Searchers.jl")
 include("Estimators.jl")
+include("compositeEstimators.jl")
 
 # Public API exports
 export Point3, Triangulation3D
@@ -41,5 +43,6 @@ export tessellate, tessellateQH
 export findSimplex, findId, recursiveSearch
 export dtfe, DensityEstimator
 export VelocityEstimator, velocityGradient
+export CompositeEstimator, CompositeBVHTree, CompositeBVHLeaf, CompositeBVHNode
 
 end # module

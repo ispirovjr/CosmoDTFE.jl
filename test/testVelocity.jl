@@ -9,7 +9,7 @@ function make_grid_points(N=5)
     return vec(points)
 end
 
-@testset "VelocityEstimator Tests" begin
+@testset "VelocityEstimator" begin
     points = make_grid_points(5) # 5x5x5 grid
 
     @testset "Constant Velocity Field" begin

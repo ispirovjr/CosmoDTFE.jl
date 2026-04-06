@@ -21,7 +21,7 @@ function makeGridPointsQH(N=5)
     return vec(points)
 end
 
-@testset "VelocityEstimatorQH Tests" begin
+@testset "VelocityEstimatorQH" begin
     points = makeGridPointsQH(5) # 5x5x5 grid
 
     @testset "Constant Velocity Field (QH)" begin
