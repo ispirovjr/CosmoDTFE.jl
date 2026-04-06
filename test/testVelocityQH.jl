@@ -3,23 +3,33 @@ using StaticArrays
 using LinearAlgebra
 using JuliaDTFE
 
+# Helper: build a VelocityEstimator using the Quickhull backend
+function makeVelocityEstimatorQH(points, velocities::Vector, depth::Int=9)
+    coords, tets = tessellateQH(points)
+    triangulation = Triangulation3D(points, tets)
+
+    simplices = coords[:, tets]
+    bvh = BoundingVolumeHierarchy(simplices, depth)
+
+    vels = [SVector{3,Float64}(v) for v in velocities]
+    return VelocityEstimator(bvh, triangulation, tets, vels)
+end
+
 # Setup a simple 3D grid of points to tessellate
-function make_grid_points(N=5)
+function makeGridPointsQH(N=5)
     points = [SVector{3,Float64}(x, y, z) for x in 1:N, y in 1:N, z in 1:N]
     return vec(points)
 end
 
-@testset "VelocityEstimator" begin
-    points = make_grid_points(5) # 5x5x5 grid
+@testset "VelocityEstimatorQH" begin
+    points = makeGridPointsQH(5) # 5x5x5 grid
 
-    @testset "Constant Velocity Field" begin
-        # v(x) = (1, 2, 3)
+    @testset "Constant Velocity Field (QH)" begin
         const_vel = SVector(1.0, 2.0, 3.0)
         velocities = [const_vel for _ in points]
 
-        est = VelocityEstimator(points, velocities)
+        est = makeVelocityEstimatorQH(points, velocities)
 
-        # Test inside a known bounds (center of grid)
         query_pt = SVector(2.5, 2.5, 2.5)
 
         v, div, shear, curl = velocityGradient(est, query_pt)
@@ -30,85 +40,49 @@ end
         @test norm(curl) ≈ 0.0 atol = 1e-10
     end
 
-    @testset "Pure Expansion (Linear Field)" begin
-        # v(x) = x
+    @testset "Pure Expansion (Linear Field) (QH)" begin
         velocities = [p for p in points]
 
-        est = VelocityEstimator(points, velocities)
+        est = makeVelocityEstimatorQH(points, velocities)
         query_pt = SVector(2.5, 2.5, 2.5)
 
         v, div, shear, curl = velocityGradient(est, query_pt)
 
-        # v(x) should be x
         @test v ≈ query_pt
-
-        # Div v = 3
         @test div ≈ 3.0
-
-        # Shear should be 0 because J = I, so S = I, and σ = I - (3/3)I = 0
         @test norm(shear) ≈ 0.0 atol = 1e-10
-
-        # Curl should be 0
         @test norm(curl) ≈ 0.0 atol = 1e-10
     end
 
-    @testset "Solid Body Rotation" begin
-        # ω = (0, 0, 1)
-        # v = ω × x = (-y, x, 0)
+    @testset "Solid Body Rotation (QH)" begin
         velocities = [SVector(-p[2], p[1], 0.0) for p in points]
 
-        est = VelocityEstimator(points, velocities)
-        query_pt = SVector(2.5, 2.5, 2.5) # Center
+        est = makeVelocityEstimatorQH(points, velocities)
+        query_pt = SVector(2.5, 2.5, 2.5)
 
         v, div, shear, curl = velocityGradient(est, query_pt)
 
         expected_v = SVector(-query_pt[2], query_pt[1], 0.0)
         @test v ≈ expected_v
-
-        # Div = 0
         @test div ≈ 0.0 atol = 1e-10
-
-        # Curl = 2ω = (0, 0, 2)
         @test curl ≈ SVector(0.0, 0.0, 2.0)
-
-        # J = [0 -1 0; 1 0 0; 0 0 0]
-        # S = 0.5(J + J') = 0
-        # Shear = 0
         @test norm(shear) ≈ 0.0 atol = 1e-10
     end
 
-    @testset "Pure Shear" begin
-        # v(x,y,z) = (y, x, 0)
+    @testset "Pure Shear (QH)" begin
         velocities = [SVector(p[2], p[1], 0.0) for p in points]
 
-        est = VelocityEstimator(points, velocities)
+        est = makeVelocityEstimatorQH(points, velocities)
         query_pt = SVector(2.5, 2.5, 2.5)
 
         v, div, shear, curl = velocityGradient(est, query_pt)
 
         expected_v = SVector(query_pt[2], query_pt[1], 0.0)
         @test v ≈ expected_v
-
-        # J = [0 1 0; 1 0 0; 0 0 0]
-        # Div = 0
         @test div ≈ 0.0 atol = 1e-10
-
-        # Curl = (0,0,0) because J is symmetric
         @test norm(curl) ≈ 0.0 atol = 1e-10
 
-        # S = 0.5(J + J') = J = [0 1 0; 1 0 0; 0 0 0]
-        # σ = S - 0 = J
         expected_shear = SMatrix{3,3,Float64}(0, 1, 0, 1, 0, 0, 0, 0, 0)
         @test shear ≈ expected_shear
-    end
-
-    @testset "Bounds Checking" begin
-        points_bad = make_grid_points(2) # 8 points
-        velocities_bad = [SVector(0.0, 0.0, 0.0) for _ in 1:7] # Only 7 velocities
-
-        @test_throws ArgumentError VelocityEstimator(points_bad, velocities_bad)
-
-        est_den = DensityEstimator(points_bad)
-        @test_throws ArgumentError VelocityEstimator(est_den, velocities_bad)
     end
 end

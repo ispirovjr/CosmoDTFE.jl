@@ -119,6 +119,7 @@ end
 Build a DTFE velocity estimator from a point cloud and associated velocities.
 """
 function VelocityEstimator(points, velocities::Vector, depth::Int=9)
+    length(velocities) == length(points) || throw(ArgumentError("length of velocities must match length of points"))
     coords, tets = tessellate(points)
     triangulation = Triangulation3D(points, tets) # Reusing existing Triangulation3D for topology
 
@@ -138,6 +139,7 @@ end
 Build a VelocityEstimator reusing the topology from a DensityEstimator.
 """
 function VelocityEstimator(est::DensityEstimator, velocities::Vector)
+    length(velocities) == length(est.triangulation.points) || throw(ArgumentError("length of velocities must match length of points"))
     vels = [SVector{3,Float64}(v) for v in velocities]
     return VelocityEstimator(est.bvh, est.triangulation, est.tetrahedra, vels)
 end
@@ -232,7 +234,7 @@ function velocityGradient(est::VelocityEstimator, point::AbstractVector{<:Real})
     λ1 = 1.0 - sum(λ234)
 
     # v(x) = Σ λ_i v_i
-    v_interp = λ1 * vel1 + λ234[1] * vel2 + λ234[2] * vel3 + λ234[3] * vel4
+    vInterp = λ1 * vel1 + λ234[1] * vel2 + λ234[2] * vel3 + λ234[3] * vel4
 
     dV = SMatrix{3,3}(hcat(vel2 - vel1, vel3 - vel1, vel4 - vel1))
 
@@ -251,7 +253,7 @@ function velocityGradient(est::VelocityEstimator, point::AbstractVector{<:Real})
         J[2, 1] - J[1, 2]
     )
 
-    return (v_interp, div, shear, vorticity)
+    return (vInterp, div, shear, vorticity)
 end
 
 # -----------------------------------------------------------------------------

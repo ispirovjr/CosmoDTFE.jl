@@ -18,5 +18,10 @@ Estimators - tests the complete density estimators.
     include("testTessellate.jl")
     include("testSearchers.jl")
     include("testEstimators.jl")
+    include("testVelocity.jl")
+    include("testTessellateQH.jl")
+    include("testEstimatorsQH.jl")
+    include("testVelocityQH.jl")
+    include("testComposite.jl")
 end
 

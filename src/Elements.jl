@@ -46,6 +46,8 @@ function Triangulation3D(points::Vector{Point3}, tets::AbstractMatrix)
 end
 
 function Triangulation3D(points::Vector{Point3}, tets::AbstractMatrix, weights::Vector)
+    length(weights) == length(points) || throw(ArgumentError("length of weights must match length of points"))
+
     # DTFE density formula: ρ*ᵢ = (d+1) * wᵢ / Σⱼ Vⱼ
 
     nPoints = length(points)
