@@ -44,16 +44,16 @@ using StaticArrays
 
             # too unstable  
 
-            # codeToRun = """
-            # using JuliaDTFE
-            # using StaticArrays
-            # pts = [SVector{3, Float64}(rand(), rand(), rand()) for _ in 1:$(nPointsHeavy)]
-            # w = ones(Float64, $(nPointsHeavy))
-            # est = DensityEstimator(pts, w) 
-            # """
-            # # We run it in a separate process so it doesn't kill the main test suite
-            # successBool = success(pipeline(`julia -e $codeToRun`))
-            # @test !successBool
+            codeToRun = """
+            using JuliaDTFE
+            using StaticArrays
+            pts = [SVector{3, Float64}(rand(), rand(), rand()) for _ in 1:$(nPointsHeavy)]
+            w = ones(Float64, $(nPointsHeavy))
+            est = DensityEstimator(pts, w) 
+            """
+            # We run it in a separate process so it doesn't kill the main test suite
+            successBool = success(pipeline(`julia -e $codeToRun`))
+            @test !successBool
         end
     else
         @info "Skipping heavy load tests. Set ENV[\"DO_HEAVY_TESTS\"]=\"true\" to run."

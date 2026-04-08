@@ -24,7 +24,6 @@ module JuliaDTFE
 
 using StaticArrays
 using TetGen
-using Quickhull
 using LinearAlgebra
 using Statistics
 
@@ -34,12 +33,12 @@ include("BVH.jl")
 include("Tessellate.jl")
 include("Searchers.jl")
 include("Estimators.jl")
-include("compositeEstimators.jl")
+include("CompositeEstimators.jl")
 
 # Public API exports
 export Point3, Triangulation3D
 export BoundingVolumeHierarchy, BVHTree, BVHLeaf, BVHNode
-export tessellate, tessellateQH
+export tessellate
 export findSimplex, findId, recursiveSearch
 export dtfe, DensityEstimator
 export VelocityEstimator, velocityGradient

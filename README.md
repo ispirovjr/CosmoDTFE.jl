@@ -2,7 +2,6 @@
 
 [![Julia](https://img.shields.io/badge/julia-v1.9+-blue.svg)](https://julialang.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Status](https://img.shields.io/badge/status-active-success.svg)]()
 
 High-performance **Delaunay Tessellation Field Estimator (DTFE)** implemented in Julia.
 
