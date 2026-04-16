@@ -78,4 +78,46 @@ using StaticArrays
         numLeaves = countLeaves(compEst.tree)
         @test numLeaves == 16
     end
+
+    @testset "Parallel generation" begin
+        Nside = 16
+        pts = [SVector{3,Float64}(x, y, z) for x in 1:Nside for y in 1:Nside for z in 1:Nside]
+        N = length(pts)
+        Nmax = N ÷ 16
+        weights = ones(Float64, N)
+
+        function countLeaves(node)
+            if node isa CompositeBVHLeaf
+                return 1
+            else
+                return countLeaves(node.leftChild) + countLeaves(node.rightChild)
+            end
+        end
+
+        # Build in parallel using all available threads
+        compEstPar = CompositeEstimator(DensityEstimator, pts, weights, Threads.nthreads(), maxPoints=Nmax, padding=0.1)
+
+        @test countLeaves(compEstPar.tree) == 16
+
+        # Evaluation should return valid density
+        val = compEstPar(SVector(8.0, 8.0, 8.0))
+        @test val >= 0.0
+
+        # Build serial for comparison
+        compEstSer = CompositeEstimator(DensityEstimator, pts, weights, maxPoints=Nmax, padding=0.1)
+        valSer = compEstSer(SVector(8.0, 8.0, 8.0))
+
+        # Both should agree
+        @test val ≈ valSer
+    end
+
+    @testset "Parallel VelocityEstimator" begin
+        pts = [SVector{3,Float64}(rand(), rand(), rand()) for _ in 1:1000]
+        vels = [SVector{3,Float64}(1.0, 0.0, 0.0) for _ in 1:1000]
+        compVelPar = CompositeEstimator(VelocityEstimator, pts, vels, Threads.nthreads(), maxPoints=100, padding=0.1)
+        valVel = compVelPar(SVector(0.5, 0.5, 0.5))
+        @test valVel isa SVector{3,Float64}
+    end
+
 end
+

@@ -334,3 +334,162 @@ function buildCompositeTree(estType::Type, T::Type, globalPoints, globalProperti
 
     return CompositeBVHNode{T}(leftChild, rightChild, splitAxis, splitValue, bounds)
 end
+
+# =============================================================================
+# Parallel Overloads
+# =============================================================================
+
+"""
+    CompositeEstimator(::Type{DensityEstimator}, points, weights, nWorkers::Int; maxPoints, padding, periodic)
+
+Parallel constructor. `nWorkers` controls the number of threads used for tree building.
+Use `Threads.nthreads()` to utilize all available threads.
+"""
+function CompositeEstimator(::Type{DensityEstimator}, points, weights, nWorkers::Int; maxPoints::Int=1_000_000, padding::Float64=0.1, periodic::Bool=false)
+    indices = collect(1:length(points))
+    if periodic
+        boxMins = zeros(Float64, 3)
+        boxMaxs = zeros(Float64, 3)
+        for d in 1:3
+            boxMins[d] = minimum(points[i][d] for i in indices)
+            boxMaxs[d] = maximum(points[i][d] for i in indices)
+        end
+        boxSpans = boxMaxs .- boxMins
+        tree = buildCompositeTree(DensityEstimator, Float64, points, weights, indices, maxPoints, padding, boxMins, boxSpans, nWorkers)
+    else
+        tree = buildCompositeTree(DensityEstimator, Float64, points, weights, indices, maxPoints, padding, nWorkers)
+    end
+    return CompositeEstimator{Float64,DensityEstimator}(tree, maxPoints, padding)
+end
+
+function CompositeEstimator(::Type{DensityEstimator}, points, nWorkers::Int; maxPoints::Int=1_000_000, padding::Float64=0.1, periodic::Bool=false)
+    indices = collect(1:length(points))
+    weights = ones(Float64, length(points))
+    if periodic
+        boxMins = zeros(Float64, 3)
+        boxMaxs = zeros(Float64, 3)
+        for d in 1:3
+            boxMins[d] = minimum(points[i][d] for i in indices)
+            boxMaxs[d] = maximum(points[i][d] for i in indices)
+        end
+        boxSpans = boxMaxs .- boxMins
+        tree = buildCompositeTree(DensityEstimator, Float64, points, weights, indices, maxPoints, padding, boxMins, boxSpans, nWorkers)
+    else
+        tree = buildCompositeTree(DensityEstimator, Float64, points, weights, indices, maxPoints, padding, nWorkers)
+    end
+    return CompositeEstimator{Float64,DensityEstimator}(tree, maxPoints, padding)
+end
+
+"""
+    CompositeEstimator(::Type{VelocityEstimator}, points, velocities, nWorkers::Int; maxPoints, padding, periodic)
+
+Parallel constructor. `nWorkers` controls the number of threads used for tree building.
+"""
+function CompositeEstimator(::Type{VelocityEstimator}, points, velocities, nWorkers::Int; maxPoints::Int=1_000_000, padding::Float64=0.1, periodic::Bool=false)
+    indices = collect(1:length(points))
+    if periodic
+        boxMins = zeros(Float64, 3)
+        boxMaxs = zeros(Float64, 3)
+        for d in 1:3
+            boxMins[d] = minimum(points[i][d] for i in indices)
+            boxMaxs[d] = maximum(points[i][d] for i in indices)
+        end
+        boxSpans = boxMaxs .- boxMins
+        tree = buildCompositeTree(VelocityEstimator, SVector{3,Float64}, points, velocities, indices, maxPoints, padding, boxMins, boxSpans, nWorkers)
+    else
+        tree = buildCompositeTree(VelocityEstimator, SVector{3,Float64}, points, velocities, indices, maxPoints, padding, nWorkers)
+    end
+    return CompositeEstimator{SVector{3,Float64},VelocityEstimator}(tree, maxPoints, padding)
+end
+
+# Parallel builder for BVH (Non-periodic)
+function buildCompositeTree(estType::Type, T::Type, globalPoints, globalProperties, indices::Vector{Int}, maxPoints::Int, padding::Float64, nWorkers::Int)
+    # Delegate to serial when budget exhausted or at leaf
+    if nWorkers <= 1 || length(indices) <= maxPoints
+        return buildCompositeTree(estType, T, globalPoints, globalProperties, indices, maxPoints, padding)
+    end
+
+    mins = zeros(Float64, 3)
+    maxs = zeros(Float64, 3)
+    for d in 1:3
+        mins[d] = minimum(globalPoints[i][d] for i in indices)
+        maxs[d] = maximum(globalPoints[i][d] for i in indices)
+    end
+    bounds = hcat(mins, maxs)
+
+    # Spatial partitioning by center of mass
+    cm = zeros(3)
+    for i in indices
+        cm .+= globalPoints[i]
+    end
+    cm ./= length(indices)
+
+    spans = maxs .- mins
+    splitAxis = argmax(spans)
+    splitValue = cm[splitAxis]
+
+    leftIndices = Int[]
+    rightIndices = Int[]
+    for i in indices
+        if globalPoints[i][splitAxis] <= splitValue
+            push!(leftIndices, i)
+        else
+            push!(rightIndices, i)
+        end
+    end
+
+    # Fork-join: spawn right child, compute left on current thread
+    nRight = nWorkers ÷ 2
+    nLeft = nWorkers - nRight
+    rightFuture = Threads.@spawn buildCompositeTree(estType, T, globalPoints, globalProperties, rightIndices, maxPoints, padding, nRight)
+    leftChild = buildCompositeTree(estType, T, globalPoints, globalProperties, leftIndices, maxPoints, padding, nLeft)
+    rightChild = fetch(rightFuture)
+
+    return CompositeBVHNode{T}(leftChild, rightChild, splitAxis, splitValue, bounds)
+end
+
+# Parallel builder for BVH (Periodic)
+function buildCompositeTree(estType::Type, T::Type, globalPoints, globalProperties, indices::Vector{Int}, maxPoints::Int, padding::Float64, boxMins::Vector{Float64}, boxSpans::Vector{Float64}, nWorkers::Int)
+    # Delegate to serial when budget exhausted or at leaf
+    if nWorkers <= 1 || length(indices) <= maxPoints
+        return buildCompositeTree(estType, T, globalPoints, globalProperties, indices, maxPoints, padding, boxMins, boxSpans)
+    end
+
+    mins = zeros(Float64, 3)
+    maxs = zeros(Float64, 3)
+    for d in 1:3
+        mins[d] = minimum(globalPoints[i][d] for i in indices)
+        maxs[d] = maximum(globalPoints[i][d] for i in indices)
+    end
+    bounds = hcat(mins, maxs)
+
+    # Spatial partitioning by center of mass
+    cm = zeros(3)
+    for i in indices
+        cm .+= globalPoints[i]
+    end
+    cm ./= length(indices)
+
+    spans = maxs .- mins
+    splitAxis = argmax(spans)
+    splitValue = cm[splitAxis]
+
+    leftIndices = Int[]
+    rightIndices = Int[]
+    for i in indices
+        if globalPoints[i][splitAxis] <= splitValue
+            push!(leftIndices, i)
+        else
+            push!(rightIndices, i)
+        end
+    end
+
+    # Fork-join: spawn right child, compute left on current thread
+    nRight = nWorkers ÷ 2
+    nLeft = nWorkers - nRight
+    rightFuture = Threads.@spawn buildCompositeTree(estType, T, globalPoints, globalProperties, rightIndices, maxPoints, padding, boxMins, boxSpans, nRight)
+    leftChild = buildCompositeTree(estType, T, globalPoints, globalProperties, leftIndices, maxPoints, padding, boxMins, boxSpans, nLeft)
+    rightChild = fetch(rightFuture)
+
+    return CompositeBVHNode{T}(leftChild, rightChild, splitAxis, splitValue, bounds)
+end

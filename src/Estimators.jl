@@ -140,6 +140,7 @@ Build a VelocityEstimator reusing the topology from a DensityEstimator.
 """
 function VelocityEstimator(est::DensityEstimator, velocities::Vector)
     length(velocities) == length(est.triangulation.points) || throw(ArgumentError("length of velocities must match length of points"))
+    @warn "Generating velocity field from density field. If the density field was mass weighted, this will estimate momenta, not velocities."
     vels = [SVector{3,Float64}(v) for v in velocities]
     return VelocityEstimator(est.bvh, est.triangulation, est.tetrahedra, vels)
 end
