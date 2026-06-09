@@ -1,34 +1,32 @@
 using Test
-using JuliaDTFE
+using CosmoDTFE
 using StaticArrays
 
 @testset "Composite Estimators" begin
-    # 1. Basic check
     pointsBasic = [SVector{3,Float64}(rand(), rand(), rand()) for _ in 1:1000]
     weightsBasic = ones(Float64, 1000)
 
     @testset "Generation and basic evaluation" begin
-        # use a tiny maxPoints to force branch creation
         compEst = CompositeEstimator(DensityEstimator, pointsBasic, weightsBasic, maxPoints=100, padding=0.1)
 
-        # Test evaluation at a few points
-        val = compEst(SVector(0.5, 0.5, 0.5))
-        @test val >= 0.0 # Density is theoretically non-negative
+        valueOne = compEst(SVector(0.5, 0.5, 0.5))
+        @test valueOne >= 0.0
 
-        pt2 = SVector(0.0, 0.0, 0.0)
-        val2 = compEst(pt2)
-        @test val2 >= 0.0
+        valueTwo = compEst(SVector(0.0, 0.0, 0.0))
+        @test valueTwo >= 0.0
     end
 
     @testset "VelocityEstimator generation" begin
-        vels = [SVector{3,Float64}(1.0, 0.0, 0.0) for _ in 1:1000]
-        compVel = CompositeEstimator(VelocityEstimator, pointsBasic, vels, maxPoints=100, padding=0.1)
-        valVel = compVel(SVector(0.5, 0.5, 0.5))
-        @test valVel isa SVector{3,Float64}
+        velocities = [SVector{3,Float64}(1.0, 0.0, 0.0) for _ in 1:1000]
+        compVel = CompositeEstimator(VelocityEstimator, pointsBasic, velocities, maxPoints=100, padding=0.1)
+        velocityValue = compVel(SVector(0.5, 0.5, 0.5))
+        @test velocityValue isa SVector{3,Float64}
 
-        vInterp, div, shear, vort = velocityGradient(compVel, SVector(0.5, 0.5, 0.5))
-        @test vInterp isa SVector{3,Float64}
-        @test div isa Float64
+        velocityInterp, divergence, shear, vorticity = velocityGradient(compVel, SVector(0.5, 0.5, 0.5))
+        @test velocityInterp isa SVector{3,Float64}
+        @test divergence isa Float64
+        @test shear isa SMatrix{3,3,Float64}
+        @test vorticity isa SVector{3,Float64}
     end
 
     if get(ENV, "DO_HEAVY_TESTS", "false") == "true"
@@ -38,20 +36,16 @@ using StaticArrays
             pointsHeavy = [SVector{3,Float64}(rand(), rand(), rand()) for _ in 1:nPointsHeavy]
             weightsHeavy = ones(Float64, nPointsHeavy)
 
-            # This shouldn't segfault
             compEstHeavy = CompositeEstimator(DensityEstimator, pointsHeavy, weightsHeavy, maxPoints=5_000_000, padding=0.01)
             @test compEstHeavy(SVector(0.5, 0.5, 0.5)) >= 0.0
 
-            # too unstable  
-
             codeToRun = """
-            using JuliaDTFE
+            using CosmoDTFE
             using StaticArrays
-            pts = [SVector{3, Float64}(rand(), rand(), rand()) for _ in 1:$(nPointsHeavy)]
-            w = ones(Float64, $(nPointsHeavy))
-            est = DensityEstimator(pts, w) 
+            points = [SVector{3, Float64}(rand(), rand(), rand()) for _ in 1:$(nPointsHeavy)]
+            weights = ones(Float64, $(nPointsHeavy))
+            estimator = DensityEstimator(points, weights)
             """
-            # We run it in a separate process so it doesn't kill the main test suite
             successBool = success(pipeline(`julia -e $codeToRun`))
             @test !successBool
         end
@@ -60,64 +54,53 @@ using StaticArrays
     end
 
     @testset "BVH Tree Leaf Count" begin
-        Nside = 16
-        pts = [SVector{3,Float64}(x, y, z) for x in 1:Nside for y in 1:Nside for z in 1:Nside]
-        N = length(pts)
-        Nmax = N ÷ 16
-        weights = ones(Float64, N)
-        compEst = CompositeEstimator(DensityEstimator, pts, weights, maxPoints=Nmax, padding=0.1)
+        nSide = 16
+        points = [SVector{3,Float64}(x, y, z) for x in 1:nSide for y in 1:nSide for z in 1:nSide]
+        pointCount = length(points)
+        maxPoints = div(pointCount, 16)
+        weights = ones(Float64, pointCount)
+        compEst = CompositeEstimator(DensityEstimator, points, weights, maxPoints=maxPoints, padding=0.1)
 
         function countLeaves(node)
             if node isa CompositeBVHLeaf
                 return 1
-            else
-                return countLeaves(node.leftChild) + countLeaves(node.rightChild)
             end
+            return countLeaves(node.leftChild) + countLeaves(node.rightChild)
         end
 
-        numLeaves = countLeaves(compEst.tree)
-        @test numLeaves == 16
+        @test countLeaves(compEst.tree) == 16
     end
 
     @testset "Parallel generation" begin
-        Nside = 16
-        pts = [SVector{3,Float64}(x, y, z) for x in 1:Nside for y in 1:Nside for z in 1:Nside]
-        N = length(pts)
-        Nmax = N ÷ 16
-        weights = ones(Float64, N)
+        nSide = 16
+        points = [SVector{3,Float64}(x, y, z) for x in 1:nSide for y in 1:nSide for z in 1:nSide]
+        pointCount = length(points)
+        maxPoints = div(pointCount, 16)
+        weights = ones(Float64, pointCount)
 
         function countLeaves(node)
             if node isa CompositeBVHLeaf
                 return 1
-            else
-                return countLeaves(node.leftChild) + countLeaves(node.rightChild)
             end
+            return countLeaves(node.leftChild) + countLeaves(node.rightChild)
         end
 
-        # Build in parallel using all available threads
-        compEstPar = CompositeEstimator(DensityEstimator, pts, weights, Threads.nthreads(), maxPoints=Nmax, padding=0.1)
-
+        compEstPar = CompositeEstimator(DensityEstimator, points, weights, Threads.nthreads(), maxPoints=maxPoints, padding=0.1)
         @test countLeaves(compEstPar.tree) == 16
 
-        # Evaluation should return valid density
-        val = compEstPar(SVector(8.0, 8.0, 8.0))
-        @test val >= 0.0
+        valuePar = compEstPar(SVector(8.0, 8.0, 8.0))
+        @test valuePar >= 0.0
 
-        # Build serial for comparison
-        compEstSer = CompositeEstimator(DensityEstimator, pts, weights, maxPoints=Nmax, padding=0.1)
-        valSer = compEstSer(SVector(8.0, 8.0, 8.0))
-
-        # Both should agree
-        @test val ≈ valSer
+        compEstSer = CompositeEstimator(DensityEstimator, points, weights, maxPoints=maxPoints, padding=0.1)
+        valueSer = compEstSer(SVector(8.0, 8.0, 8.0))
+        @test valuePar ≈ valueSer
     end
 
     @testset "Parallel VelocityEstimator" begin
-        pts = [SVector{3,Float64}(rand(), rand(), rand()) for _ in 1:1000]
-        vels = [SVector{3,Float64}(1.0, 0.0, 0.0) for _ in 1:1000]
-        compVelPar = CompositeEstimator(VelocityEstimator, pts, vels, Threads.nthreads(), maxPoints=100, padding=0.1)
-        valVel = compVelPar(SVector(0.5, 0.5, 0.5))
-        @test valVel isa SVector{3,Float64}
+        points = [SVector{3,Float64}(rand(), rand(), rand()) for _ in 1:1000]
+        velocities = [SVector{3,Float64}(1.0, 0.0, 0.0) for _ in 1:1000]
+        compVelPar = CompositeEstimator(VelocityEstimator, points, velocities, Threads.nthreads(), maxPoints=100, padding=0.1)
+        velocityValue = compVelPar(SVector(0.5, 0.5, 0.5))
+        @test velocityValue isa SVector{3,Float64}
     end
-
 end
-

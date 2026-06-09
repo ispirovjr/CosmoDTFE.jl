@@ -1,25 +1,23 @@
-# Elements - Core data structures for DTFE
-
 """3D point type using StaticArrays for performance."""
 const Point3 = SVector{3,Float64}
 
-
+"""Convert point-like inputs into a fresh vector of `Point3` values."""
+toPoint3Vector(points::AbstractVector) = [Point3(point) for point in points]
 
 """
     Triangulation3D
 
-Result of Delaunay tessellation with per-vertex density estimates.
+Result of Delaunay tessellation with per-vertex DTFE density estimates.
 """
 struct Triangulation3D
     points::Vector{Point3}
     rhoStar::Vector{Float64}
 end
 
-
 """
     computeVolume(verts)
 
-Compute volume of tetrahedron from 4 vertices.
+Compute the volume of a tetrahedron from four vertices.
 """
 function computeVolume(verts)
     v1, v2, v3, v4 = verts
@@ -37,37 +35,28 @@ function computeVolume(verts::AbstractMatrix)
     return abs(dot(a, cross(b, c))) / 6
 end
 
-
-
-
 function Triangulation3D(points::Vector{Point3}, tets::AbstractMatrix)
     weights = ones(length(points))
     return Triangulation3D(points, tets, weights)
 end
 
-function Triangulation3D(points::Vector{Point3}, tets::AbstractMatrix, weights::Vector)
+function Triangulation3D(points::Vector{Point3}, tets::AbstractMatrix, weights::AbstractVector)
     length(weights) == length(points) || throw(ArgumentError("length of weights must match length of points"))
 
-    # DTFE density formula: ρ*ᵢ = (d+1) * wᵢ / Σⱼ Vⱼ
-
     nPoints = length(points)
-    rhos = zeros(nPoints)
+    rhoStars = zeros(nPoints)
 
-    #accumulate contiguous volume for each vertex
     @inbounds for tet in eachrow(tets)
         pos = points[tet]
         vol = computeVolume(pos)
         for i in tet
-            rhos[i] += vol
+            rhoStars[i] += vol
         end
     end
 
-    #compute density using DTFE formula in-place
     @inbounds for i in 1:nPoints
-        if rhos[i] > 0
-            rhos[i] = 4.0 * weights[i] / rhos[i]
-        end
+        rhoStars[i] = 4.0 * weights[i] / rhoStars[i]
     end
 
-    return Triangulation3D(points, rhos)
+    return Triangulation3D(points, rhoStars)
 end

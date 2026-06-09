@@ -1,6 +1,6 @@
 using Test
 using StaticArrays
-using JuliaDTFE
+using CosmoDTFE
 
 @testset "Tessellate" begin
 

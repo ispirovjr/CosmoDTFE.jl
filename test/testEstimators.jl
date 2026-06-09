@@ -1,6 +1,6 @@
 using Test
 using StaticArrays
-using JuliaDTFE
+using CosmoDTFE
 using Statistics
 
 @testset "Estimators" begin
@@ -69,7 +69,7 @@ using Statistics
         # 2. Check Mass Conservation
         totalMass = sum(begin
             pos = estimator.triangulation.points[tet]
-            vol = JuliaDTFE.computeVolume(pos)
+            vol = CosmoDTFE.computeVolume(pos)
             rhos = estimator.triangulation.rhoStar[tet]
             mean(rhos) * vol
         end for tet in eachrow(estimator.tetrahedra))
@@ -124,10 +124,10 @@ using Statistics
         estimator = DensityEstimator(points, 5)
 
         # List of points for testing
-        query_points = [Point3(rand(), rand(), rand()) for _ in 1:10]
+        queryPoints = [Point3(rand(), rand(), rand()) for _ in 1:10]
 
         # Use functor call on vector
-        densityArray = estimator(query_points)
+        densityArray = estimator(queryPoints)
 
         @test length(densityArray) == 10
         @test all(densityArray .>= 0.0)

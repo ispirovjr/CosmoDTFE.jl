@@ -1,5 +1,5 @@
 """
-    JuliaDTFE
+    CosmoDTFE
 
 Delaunay Tessellation Field Estimator (DTFE) implemented in Julia.
 
@@ -20,12 +20,11 @@ Delaunay tessellation with BVH-accelerated spatial queries.
 - `DensityEstimator`: Build DTFE estimator from point cloud
 - `dtfe`: Interpolate density at a point (called by DensityEstimator functor)
 """
-module JuliaDTFE
+module CosmoDTFE
 
 using StaticArrays
 using TetGen
 using LinearAlgebra
-using Statistics
 
 # Core components (plain includes, no submodules)
 include("Elements.jl")

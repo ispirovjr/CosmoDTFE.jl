@@ -1,5 +1,5 @@
 using Test
-using JuliaDTFE
+using CosmoDTFE
 using StaticArrays
 
 @testset "TetGen Thread Safety" begin

@@ -1,22 +1,16 @@
-name = "JuliaDTFE"
-uuid = "a1dec568-ffda-4509-adf8-7ea69557dd13"
-version = "0.0.1"
+name = "CosmoDTFE"
+uuid = "d376d98b-24c2-4fac-bf6b-9000e4999c11"
+version = "0.1.0"
 authors = ["Ivan Spirov <ispirovjr@gmail.com>"]
 
 [deps]
-JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
-Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
-Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 TetGen = "c5d3f3f7-f850-59f6-8a2e-ffc6dc1317ea"
-illustris_julia = "356b6c62-7396-11ec-31d4-55c52b5be5ca"
 
 [compat]
-JLD2 = "0.6.3"
-Plots = "1.41.6"
-Statistics = "1.11.1"
-illustris_julia = "0.1.0"
+StaticArrays = "1"
+TetGen = "2"
 julia = "1.9"
 
 [extras]
@@ -24,4 +18,4 @@ Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test"]
+test = ["Statistics", "Test"]

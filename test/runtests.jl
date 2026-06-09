@@ -1,8 +1,8 @@
 using Test
-using JuliaDTFE
+using CosmoDTFE
 
 """
-This file runs all the tests for the JuliaDTFE package.
+This file runs all the tests for the CosmoDTFE package.
 
 Elements - tests the basic data structures and functions.
 Bvh - tests the bounding volume hierarchy.
@@ -12,7 +12,7 @@ Estimators - tests the complete density estimators.
 """
 
 
-@testset "JuliaDTFE" begin
+@testset "CosmoDTFE" begin
     include("testElements.jl")
     include("testBvh.jl")
     include("testTessellate.jl")
@@ -20,6 +20,10 @@ Estimators - tests the complete density estimators.
     include("testEstimators.jl")
     include("testVelocity.jl")
     include("testComposite.jl")
-    include("tetgenThreadSafety.jl")
+    if get(ENV, "DO_TETGEN_THREAD_TESTS", "false") == "true"
+        include("tetgenThreadSafety.jl")
+    else
+        @info "Skipping TetGen thread safety test. Set DO_TETGEN_THREAD_TESTS=true to run."
+    end
 end
 

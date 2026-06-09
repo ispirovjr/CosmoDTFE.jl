@@ -1,17 +1,15 @@
-# Estimators - DTFE density and velocity estimation functions
-
 """
     AbstractEstimator{T}
 
-Abstract base type for DTFE estimators.
-Subtypes implement a functor method `(est::Subtype)(point::AbstractVector{<:Real}) -> T`.
+Abstract base type for DTFE estimators that return values of type `T`.
+Subtypes implement `(est::Subtype)(point::AbstractVector{<:Real})`.
 """
 abstract type AbstractEstimator{T} end
 
 """
-    (est::AbstractEstimator{T})(points::AbstractVector{<:AbstractVector})
+    (est::AbstractEstimator{T})(points)
 
-Interpolate at a list of points using multithreading.
+Evaluate an estimator at a vector of points using Julia threads.
 """
 function (est::AbstractEstimator{T})(points::AbstractVector{<:AbstractVector}) where T
     results = Vector{T}(undef, length(points))
@@ -21,15 +19,13 @@ function (est::AbstractEstimator{T})(points::AbstractVector{<:AbstractVector}) w
     return results
 end
 
-
 """
-    (est::AbstractEstimator{T})(grid::Tuple)
+    (est::AbstractEstimator{T})(grid)
 
-Interpolate on a 3D grid defined by (xs, ys, zs).
+Evaluate an estimator on a 3D grid represented by `(xs, ys, zs)`.
 """
 function (est::AbstractEstimator{T})(grid::Tuple) where T
     xs, ys, zs = grid
-
     results = Array{T,3}(undef, length(xs), length(ys), length(zs))
 
     Threads.@threads for i in eachindex(xs)
@@ -43,16 +39,42 @@ function (est::AbstractEstimator{T})(grid::Tuple) where T
     return results
 end
 
+@inline function barycentricWeights(point::AbstractVector{<:Real}, v1, v2, v3, v4)
+    p = Point3(point)
+    dX = SMatrix{3,3,Float64}(hcat(v2 - v1, v3 - v1, v4 - v1))
+    lambda234 = inv(dX) * (p - v1)
+    lambda1 = 1.0 - sum(lambda234)
+    return SVector(lambda1, lambda234[1], lambda234[2], lambda234[3])
+end
 
-# -----------------------------------------------------------------------------
-# DensityEstimator
-# -----------------------------------------------------------------------------
+@inline function interpolateSimplex(lambda, val1, val2, val3, val4)
+    return lambda[1] * val1 + lambda[2] * val2 + lambda[3] * val3 + lambda[4] * val4
+end
+
+@inline function simplexData(data, tets, tetId::Integer)
+    @inbounds return (
+        data[tets[tetId, 1]],
+        data[tets[tetId, 2]],
+        data[tets[tetId, 3]],
+        data[tets[tetId, 4]],
+    )
+end
+
+function buildEstimatorGeometry(points, depth::Int)
+    ps = toPoint3Vector(points)
+    coords, tets = tessellate(ps)
+    tessPoints = matrixColumnsToPoints(coords)
+
+    simplices = coords[:, tets]
+    bvh = BoundingVolumeHierarchy(simplices, depth)
+    return tessPoints, tets, bvh
+end
 
 """
     DensityEstimator
 
-A struct containing the necessary components for density estimation.
-Output type: `Float64`
+DTFE density estimator. Calling the estimator at a point returns a `Float64`
+density value, or `0.0` outside the tessellated volume.
 """
 struct DensityEstimator <: AbstractEstimator{Float64}
     bvh::BoundingVolumeHierarchy
@@ -61,50 +83,44 @@ struct DensityEstimator <: AbstractEstimator{Float64}
 end
 
 """
-    DensityEstimator(points, weights::Vector, depth=9)
-    DensityEstimator(points, depth=9)
+    DensityEstimator(points, weights; depth=9)
+    DensityEstimator(points, weights, depth)
+    DensityEstimator(points; depth=9)
+    DensityEstimator(points, depth)
 
-Build a DTFE estimator from a point cloud.
+Build a DTFE density estimator from point positions and optional per-point
+weights. Unweighted density uses unit weights.
 """
-function DensityEstimator(points, weights::Vector, depth::Int=9)
-    coords, tets = tessellate(points)
-    triangulation = Triangulation3D(points, tets, weights)  # tets is M×4, rows are tets
-
-    simplices = coords[:, tets]
-    bvh = BoundingVolumeHierarchy(simplices, depth)
-
+function DensityEstimator(points, weights::AbstractVector; depth::Int=9)
+    pts, tets, bvh = buildEstimatorGeometry(points, depth)
+    triangulation = Triangulation3D(pts, tets, weights)
     return DensityEstimator(bvh, triangulation, tets)
 end
 
-function DensityEstimator(points, depth::Int=9)
-    coords, tets = tessellate(points)
-    triangulation = Triangulation3D(points, tets)  # tets is M×4, rows are tets
+DensityEstimator(points, weights::AbstractVector, depth::Int) = DensityEstimator(points, weights; depth=depth)
 
-    simplices = coords[:, tets]
-    bvh = BoundingVolumeHierarchy(simplices, depth)
-
-    return DensityEstimator(bvh, triangulation, tets)
+function DensityEstimator(points; depth::Int=9)
+    pointCount = length(points)
+    weights = ones(Float64, pointCount)
+    return DensityEstimator(points, weights; depth=depth)
 end
 
-"""
-    (est::DensityEstimator)(point::AbstractVector{<:Real})
+DensityEstimator(points, depth::Int) = DensityEstimator(points; depth=depth)
 
-Interpolate density at a single point using barycentric coordinates.
+"""
+    (est::DensityEstimator)(point)
+
+Interpolate density at a single point.
 """
 function (est::DensityEstimator)(point::AbstractVector{<:Real})
-    dtfe(point, est.bvh, est.tetrahedra, est.triangulation)
+    return dtfe(point, est.bvh, est.tetrahedra, est.triangulation)
 end
-
-
-# -----------------------------------------------------------------------------
-# VelocityEstimator
-# -----------------------------------------------------------------------------
 
 """
     VelocityEstimator
 
-A struct containing the necessary components for velocity field estimation.
-Output type: `SVector{3, Float64}`
+DTFE velocity estimator. Calling the estimator at a point returns an
+`SVector{3,Float64}` velocity, or a zero vector outside the tessellated volume.
 """
 struct VelocityEstimator <: AbstractEstimator{SVector{3,Float64}}
     bvh::BoundingVolumeHierarchy
@@ -114,193 +130,111 @@ struct VelocityEstimator <: AbstractEstimator{SVector{3,Float64}}
 end
 
 """
-    VelocityEstimator(points, velocities::Vector, depth=9)
+    VelocityEstimator(points, velocities; depth=9)
+    VelocityEstimator(points, velocities, depth)
 
-Build a DTFE velocity estimator from a point cloud and associated velocities.
+Build a DTFE velocity estimator from point positions and per-point velocities.
 """
-function VelocityEstimator(points, velocities::Vector, depth::Int=9)
+function VelocityEstimator(points, velocities::AbstractVector; depth::Int=9)
     length(velocities) == length(points) || throw(ArgumentError("length of velocities must match length of points"))
-    coords, tets = tessellate(points)
-    triangulation = Triangulation3D(points, tets) # Reusing existing Triangulation3D for topology
 
-    simplices = coords[:, tets]
-    bvh = BoundingVolumeHierarchy(simplices, depth)
-
-    # Convert velocities to SVector if they aren't already
-    vels = [SVector{3,Float64}(v) for v in velocities]
+    pts, tets, bvh = buildEstimatorGeometry(points, depth)
+    triangulation = Triangulation3D(pts, tets)
+    vels = [Point3(velocity) for velocity in velocities]
 
     return VelocityEstimator(bvh, triangulation, tets, vels)
 end
 
+VelocityEstimator(points, velocities::AbstractVector, depth::Int) = VelocityEstimator(points, velocities; depth=depth)
 
 """
-    VelocityEstimator(est::DensityEstimator, velocities::Vector)
+    VelocityEstimator(est::DensityEstimator, velocities)
 
-Build a VelocityEstimator reusing the topology from a DensityEstimator.
+Build a velocity estimator reusing the tessellation from an existing density
+estimator.
 """
-function VelocityEstimator(est::DensityEstimator, velocities::Vector)
-    length(velocities) == length(est.triangulation.points) || throw(ArgumentError("length of velocities must match length of points"))
-    @warn "Generating velocity field from density field. If the density field was mass weighted, this will estimate momenta, not velocities."
-    vels = [SVector{3,Float64}(v) for v in velocities]
+function VelocityEstimator(est::DensityEstimator, velocities::AbstractVector)
+    length(velocities) == length(est.triangulation.points) ||
+        throw(ArgumentError("length of velocities must match length of points"))
+    @warn "Generating velocity field from density field. If the density field was mass weighted, this estimates momenta, not velocities."
+    vels = [Point3(velocity) for velocity in velocities]
     return VelocityEstimator(est.bvh, est.triangulation, est.tetrahedra, vels)
 end
 
 """
-    (est::VelocityEstimator)(point::AbstractVector{<:Real})
+    (est::VelocityEstimator)(point)
 
 Interpolate velocity at a single point.
 """
 function (est::VelocityEstimator)(point::AbstractVector{<:Real})
-    coords = est.triangulation.points
+    tetId = findId(point, est.triangulation.points, est.tetrahedra, est.bvh)
+    tetId === nothing && return Point3(0.0, 0.0, 0.0)
 
-    i = findId(point, coords, est.tetrahedra, est.bvh)
-    i === nothing && return SVector(0.0, 0.0, 0.0)
+    verts = simplexData(est.triangulation.points, est.tetrahedra, tetId)
+    vels = simplexData(est.velocities, est.tetrahedra, tetId)
+    lambda = barycentricWeights(point, verts...)
 
-    @inbounds idx1 = est.tetrahedra[i, 1]
-    @inbounds idx2 = est.tetrahedra[i, 2]
-    @inbounds idx3 = est.tetrahedra[i, 3]
-    @inbounds idx4 = est.tetrahedra[i, 4]
-
-    @inbounds v1 = coords[idx1]
-    @inbounds v2 = coords[idx2]
-    @inbounds v3 = coords[idx3]
-    @inbounds v4 = coords[idx4]
-
-    @inbounds vel1 = est.velocities[idx1]
-    @inbounds vel2 = est.velocities[idx2]
-    @inbounds vel3 = est.velocities[idx3]
-    @inbounds vel4 = est.velocities[idx4]
-
-    dX = SMatrix{3,3}(hcat(v2 - v1, v3 - v1, v4 - v1))
-    invM = inv(dX)
-
-    diff = point - v1
-    λ234 = invM * diff
-    λ1 = 1.0 - sum(λ234)
-
-    return λ1 * vel1 + λ234[1] * vel2 + λ234[2] * vel3 + λ234[3] * vel4
+    return interpolateSimplex(lambda, vels...)
 end
 
 """
-    velocity(est::VelocityEstimator, point::AbstractVector{<:Real})
+    velocity(est::VelocityEstimator, point)
 
-Interpolate velocity at a single point (alias for functor).
+Interpolate velocity at a single point.
 """
-function velocity(est::VelocityEstimator, point::AbstractVector{<:Real})
-    est(point)
-end
+velocity(est::VelocityEstimator, point::AbstractVector{<:Real}) = est(point)
 
 """
-    velocityGradient(est::VelocityEstimator, point::AbstractVector{<:Real})
+    velocityGradient(est::VelocityEstimator, point)
 
-Calculate interpolated velocity and its gradients (divergence, shear, vorticity) at a point.
+Calculate interpolated velocity and its local gradient decomposition.
 
-# Returns
-A tuple `(velocity, divergence, shear, vorticity)` where:
-- `velocity` - Interpolated velocity vector
-- `divergence` (∇⋅v)
-- `shear` - Symmetric traceless shear tensor
-- `vorticity` (∇×v)
-
-Returns zero values if the point is outside the tessellation.
+Returns `(velocity, divergence, shear, vorticity)`. All values are zero when
+the point is outside the tessellated volume.
 """
 function velocityGradient(est::VelocityEstimator, point::AbstractVector{<:Real})
-    coords = est.triangulation.points
+    tetId = findId(point, est.triangulation.points, est.tetrahedra, est.bvh)
+    tetId === nothing && return (Point3(0.0, 0.0, 0.0), 0.0, zero(SMatrix{3,3,Float64}), Point3(0.0, 0.0, 0.0))
 
-    i = findId(point, coords, est.tetrahedra, est.bvh)
-    i === nothing && return (SVector(0.0, 0.0, 0.0), 0.0, zero(SMatrix{3,3,Float64}), SVector(0.0, 0.0, 0.0))
-
-    @inbounds idx1 = est.tetrahedra[i, 1]
-    @inbounds idx2 = est.tetrahedra[i, 2]
-    @inbounds idx3 = est.tetrahedra[i, 3]
-    @inbounds idx4 = est.tetrahedra[i, 4]
-
-    @inbounds v1 = coords[idx1]
-    @inbounds v2 = coords[idx2]
-    @inbounds v3 = coords[idx3]
-    @inbounds v4 = coords[idx4]
-
-    @inbounds vel1 = est.velocities[idx1]
-    @inbounds vel2 = est.velocities[idx2]
-    @inbounds vel3 = est.velocities[idx3]
-    @inbounds vel4 = est.velocities[idx4]
-
-
-    # ΔX matrix columns: x2-x1, x3-x1, x4-x1
-    dX = SMatrix{3,3}(hcat(v2 - v1, v3 - v1, v4 - v1))
-    invM = inv(dX)
-
-    diff = point - v1
-    λ234 = invM * diff
-    λ1 = 1.0 - sum(λ234)
-
-    # v(x) = Σ λ_i v_i
-    vInterp = λ1 * vel1 + λ234[1] * vel2 + λ234[2] * vel3 + λ234[3] * vel4
-
-    dV = SMatrix{3,3}(hcat(vel2 - vel1, vel3 - vel1, vel4 - vel1))
-
-    J = dV * invM # Velocity Gradient Tensor (∇v)
-
-    div = tr(J)
-
-    # Shear σ = 0.5(J + J^T) - (1/3)θI
-    S = 0.5 * (J + transpose(J))
-    shear = S - (div / 3.0) * I
-
-    # Vorticity ω = ∇×v
-    vorticity = SVector(
-        J[3, 2] - J[2, 3],
-        J[1, 3] - J[3, 1],
-        J[2, 1] - J[1, 2]
-    )
-
-    return (vInterp, div, shear, vorticity)
-end
-
-# -----------------------------------------------------------------------------
-# Shared Kernel
-# -----------------------------------------------------------------------------
-
-"""
-    dtfe(point, bvh, tetrahedra, tessellation)
-
-Interpolate density at a single point using barycentric coordinates.
-
-# Returns
-- Density value at point, or 0 if point is outside tessellation.
-"""
-@views function dtfe(point, bvh, tetrahedra, tessellation)
-    coords = tessellation.points
-
-    i = findId(point, coords, tetrahedra, bvh) # passes arrays without allocating to speed up
-    i === nothing && return 0.0
-
-
-    @inbounds idx1 = tetrahedra[i, 1]
-    @inbounds idx2 = tetrahedra[i, 2]
-    @inbounds idx3 = tetrahedra[i, 3]
-    @inbounds idx4 = tetrahedra[i, 4]
-
-    @inbounds v1 = coords[idx1]
-    @inbounds v2 = coords[idx2]
-    @inbounds v3 = coords[idx3]
-    @inbounds v4 = coords[idx4]
-
-    @inbounds rho1 = tessellation.rhoStar[idx1]
-    @inbounds rho2 = tessellation.rhoStar[idx2]
-    @inbounds rho3 = tessellation.rhoStar[idx3]
-    @inbounds rho4 = tessellation.rhoStar[idx4]
+    v1, v2, v3, v4 = simplexData(est.triangulation.points, est.tetrahedra, tetId)
+    vel1, vel2, vel3, vel4 = simplexData(est.velocities, est.tetrahedra, tetId)
 
     dX = SMatrix{3,3,Float64}(hcat(v2 - v1, v3 - v1, v4 - v1))
     invM = inv(dX)
 
-    diff = point - v1
-    λ234 = invM * diff
-    λ1 = 1.0 - sum(λ234)
+    lambda = barycentricWeights(point, v1, v2, v3, v4)
+    vInterp = interpolateSimplex(lambda, vel1, vel2, vel3, vel4)
 
-    interpolation = λ1 * rho1 + λ234[1] * rho2 + λ234[2] * rho3 + λ234[3] * rho4
+    dV = SMatrix{3,3,Float64}(hcat(vel2 - vel1, vel3 - vel1, vel4 - vel1))
+    J = dV * invM
 
-    return interpolation
+    div = tr(J)
+    S = 0.5 * (J + transpose(J))
+    I3 = SMatrix{3,3,Float64,9}(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0)
+    shear = S - (div / 3.0) * I3
+
+    vorticity = Point3(
+        J[3, 2] - J[2, 3],
+        J[1, 3] - J[3, 1],
+        J[2, 1] - J[1, 2],
+    )
+
+    return vInterp, div, shear, vorticity
 end
 
+"""
+    dtfe(point, bvh, tetrahedra, tessellation)
 
+Interpolate density at a single point using barycentric coordinates. Returns
+`0.0` when the point is outside the tessellated volume.
+"""
+function dtfe(point, bvh, tetrahedra, tessellation)
+    tetId = findId(point, tessellation.points, tetrahedra, bvh)
+    tetId === nothing && return 0.0
+
+    verts = simplexData(tessellation.points, tetrahedra, tetId)
+    rhos = simplexData(tessellation.rhoStar, tetrahedra, tetId)
+    lambda = barycentricWeights(point, verts...)
+
+    return interpolateSimplex(lambda, rhos...)
+end

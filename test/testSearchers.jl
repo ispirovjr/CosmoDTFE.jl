@@ -1,7 +1,7 @@
 using Test
 using StaticArrays
 using LinearAlgebra
-using JuliaDTFE
+using CosmoDTFE
 
 @testset "Searchers" begin
 
@@ -16,15 +16,15 @@ using JuliaDTFE
 
         # Point inside tetrahedron (
         centroid = SVector{3,Float64}(0.25, 0.25, 0.25)
-        @test JuliaDTFE.intersection3D(centroid, simplex) == true
+        @test CosmoDTFE.intersection3D(centroid, simplex) == true
 
         # Point outside tetrahedron
         outside = SVector{3,Float64}(2.0, 2.0, 2.0)
-        @test JuliaDTFE.intersection3D(outside, simplex) == false
+        @test CosmoDTFE.intersection3D(outside, simplex) == false
 
         # Point at vertex (boundary case)
         atVertex = SVector{3,Float64}(0.0, 0.0, 0.0)
-        @test JuliaDTFE.intersection3D(atVertex, simplex) == true
+        @test CosmoDTFE.intersection3D(atVertex, simplex) == true
 
     end
 
@@ -38,10 +38,10 @@ using JuliaDTFE
         ]
 
         inside = [0.25, 0.25, 0.25]
-        @test JuliaDTFE.intersection3D(inside, simplex) == true
+        @test CosmoDTFE.intersection3D(inside, simplex) == true
 
         outside = [2.0, 2.0, 2.0]
-        @test JuliaDTFE.intersection3D(outside, simplex) == false
+        @test CosmoDTFE.intersection3D(outside, simplex) == false
     end
 
     @testset "findId with BVH integration" begin

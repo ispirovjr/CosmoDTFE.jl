@@ -1,10 +1,17 @@
-# Tessellate - Delaunay tetrahedralization via TetGen
-#
-# Produces 3D tessellation from point clouds.
+"""
+    pointsToColumns(points)
 
-"""Convert vector of Point3 to matrix for TetGen."""
-pointsToMatrix(points::Vector{Point3}) = reduce(hcat, points)'
+Convert a vector of `Point3` values into the `3 x nPoints` coordinate matrix
+used by TetGen and the BVH code.
+"""
+pointsToColumns(points::Vector{Point3}) = reduce(hcat, points)
 
+"""
+    matrixColumnsToPoints(coords)
+
+Convert a `3 x nPoints` coordinate matrix into a vector of `Point3` values.
+"""
+matrixColumnsToPoints(coords::AbstractMatrix) = [Point3(coords[:, pointId]) for pointId in axes(coords, 2)]
 
 """
     tessellate(points::Vector{Point3})
@@ -12,31 +19,32 @@ pointsToMatrix(points::Vector{Point3}) = reduce(hcat, points)'
 Tetrahedralize a 3D point cloud.
 
 # Returns
-- `coords::Matrix{Float64}`: Coordinate matrix [3×N]
-- `tetrahedra::Matrix{Int}`: Tetrahedron indices [M×4]
+- `coords::Matrix{Float64}`: coordinate matrix with size `3 x nPoints`
+- `tetrahedra::Matrix{Int}`: tetrahedron indices with size `nTetrahedra x 4`
 """
 function tessellate(points::Vector{Point3})
-    coords3 = pointsToMatrix(points)
+    meshData = TetGen.RawTetGenIO{Float64}()
+    meshData.pointlist = pointsToColumns(points)
 
-    meshdata = TetGen.RawTetGenIO{Float64}()
-    meshdata.pointlist = coords3'
+    result = TetGen.tetrahedralize(meshData, "Q")
 
-    result = TetGen.tetrahedralize(meshdata, "Q")
-
-    tets = result.tetrahedronlist'
     coords = result.pointlist
-    return coords, tets
+    tetrahedra = result.tetrahedronlist'
+    return coords, tetrahedra
 end
 
+"""
+    tessellate(points::Matrix)
+
+Tetrahedralize a `3 x nPoints` coordinate matrix.
+"""
 function tessellate(points::Matrix)
-    meshdata = TetGen.RawTetGenIO{Float64}()
-    meshdata.pointlist = points
+    meshData = TetGen.RawTetGenIO{Float64}()
+    meshData.pointlist = points
 
-    result = TetGen.tetrahedralize(meshdata, "Q")
+    result = TetGen.tetrahedralize(meshData, "Q")
 
-    tets = result.tetrahedronlist'
     coords = result.pointlist
-    return coords, tets
+    tetrahedra = result.tetrahedronlist'
+    return coords, tetrahedra
 end
-
-

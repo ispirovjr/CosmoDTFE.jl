@@ -1,6 +1,6 @@
 using Test
 using StaticArrays
-using JuliaDTFE
+using CosmoDTFE
 
 @testset "Elements" begin
 
@@ -25,15 +25,15 @@ using JuliaDTFE
         v4 = Point3(0.0, 0.0, 1.0)
         verts = (v1, v2, v3, v4)
 
-        @test JuliaDTFE.computeVolume(verts) ≈ 1 / 6
+        @test CosmoDTFE.computeVolume(verts) ≈ 1 / 6
 
         # Scaled tetrahedron: scale by 2 -> volume scales by 8
         scaledVerts = (2 * v1, 2 * v2, 2 * v3, 2 * v4)
-        @test JuliaDTFE.computeVolume(scaledVerts) ≈ 8 / 6
+        @test CosmoDTFE.computeVolume(scaledVerts) ≈ 8 / 6
 
         # Matrix input
         vertMatrix = [0.0 1.0 0.0 0.0; 0.0 0.0 1.0 0.0; 0.0 0.0 0.0 1.0]
-        @test JuliaDTFE.computeVolume(vertMatrix) ≈ 1 / 6
+        @test CosmoDTFE.computeVolume(vertMatrix) ≈ 1 / 6
     end
 
     @testset "Triangulation3D construction" begin
