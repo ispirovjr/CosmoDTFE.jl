@@ -43,11 +43,47 @@ zs = range(0.0, 1.0, length=16)
 densityGrid = estimator((xs, ys, zs))
 ```
 
+## Periodic Boxes
+
+Use `PeriodicEstimator` when the field lives on a periodic box. `padding` is a
+fraction of `boxSize`; points inside that distance from a box face are copied
+across the corresponding periodic boundary.
+
+```julia
+periodicDensity = PeriodicEstimator(
+    DensityEstimator,
+    points,
+    weights;
+    boxSize=Point3(1.0, 1.0, 1.0),
+    padding=0.1,
+    depth=9,
+)
+
+densityValue = periodicDensity(Point3(1.02, 0.5, 0.5))
+```
+
+Velocity fields use the same wrapper:
+
+```julia
+velocities = [Point3(rand(), rand(), rand()) for _ in points]
+periodicVelocity = PeriodicEstimator(
+    VelocityEstimator,
+    points,
+    velocities;
+    boxSize=Point3(1.0, 1.0, 1.0),
+    padding=0.1,
+)
+
+velocityValue, divergence, shear, vorticity =
+    velocityGradient(periodicVelocity, Point3(-0.02, 0.5, 0.5))
+```
+
 ## Core API
 
 - `Point3`: static 3D point alias, `SVector{3,Float64}`
 - `DensityEstimator`: scalar DTFE density estimation
 - `VelocityEstimator`: vector velocity estimation and `velocityGradient`
+- `PeriodicEstimator`: periodic wrapper for density and velocity estimators
 - `tessellate`: TetGen-backed tetrahedralization
 - `BoundingVolumeHierarchy`: BVH acceleration structure
 

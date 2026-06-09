@@ -32,6 +32,7 @@ include("BVH.jl")
 include("Tessellate.jl")
 include("Searchers.jl")
 include("Estimators.jl")
+include("PeriodicEstimators.jl")
 include("CompositeEstimators.jl")
 
 # Public API exports
@@ -41,6 +42,7 @@ export tessellate
 export findSimplex, findId, recursiveSearch
 export dtfe, DensityEstimator
 export VelocityEstimator, velocityGradient
+export PeriodicEstimator
 export CompositeEstimator, CompositeBVHTree, CompositeBVHLeaf, CompositeBVHNode
 
 end # module
