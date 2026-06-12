@@ -20,6 +20,7 @@ Estimators - tests the complete density estimators.
     include("testEstimators.jl")
     include("testVelocity.jl")
     include("testPeriodic.jl")
+    include("testPhaseSpace.jl")
     include("testComposite.jl")
     if get(ENV, "DO_TETGEN_THREAD_TESTS", "false") == "true"
         include("tetgenThreadSafety.jl")

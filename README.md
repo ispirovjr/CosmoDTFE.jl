@@ -4,10 +4,10 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 CosmoDTFE is a Julia implementation of the Delaunay Tessellation Field Estimator
-(DTFE) for cosmological density and velocity fields.
+(DTFE) for cosmological density, velocity and warped phase-space fields.
 
 DTFE estimates continuous fields from discrete samples by tessellating the point
-distribution, assigning per-vertex values, and interpolating inside the
+distribution, assigning per-vertex values and interpolating inside the
 tetrahedron that contains each query point. CosmoDTFE uses TetGen for 3D
 Delaunay tessellation and a bounding volume hierarchy for fast spatial lookup.
 
@@ -78,12 +78,26 @@ velocityValue, divergence, shear, vorticity =
     velocityGradient(periodicVelocity, Point3(-0.02, 0.5, 0.5))
 ```
 
+## Phase Space
+
+`PhaseSpaceEstimator` tessellates points in source coordinates, then searches
+and interpolates in warped coordinates. If multiple warped tetrahedra contain a
+query point, all contributions are summed.
+
+```julia
+phaseEstimator = PhaseSpaceEstimator(sourcePoints, warpedPoints, values; depth=9)
+fieldValue = phaseEstimator(queryPoint)
+streams = streamNumber(phaseEstimator, queryPoint)
+```
+
 ## Core API
 
 - `Point3`: static 3D point alias, `SVector{3,Float64}`
 - `DensityEstimator`: scalar DTFE density estimation
 - `VelocityEstimator`: vector velocity estimation and `velocityGradient`
 - `PeriodicEstimator`: periodic wrapper for density and velocity estimators
+- `PhaseSpaceEstimator`: generic warped-coordinate field estimator
+- `streamNumber`: number of warped tetrahedra containing a point
 - `tessellate`: TetGen-backed tetrahedralization
 - `BoundingVolumeHierarchy`: BVH acceleration structure
 
@@ -91,5 +105,5 @@ velocityValue, divergence, shear, vorticity =
 
 The package intentionally does not track `Manifest.toml`; applications and
 analysis projects should manage their own manifests. Heavy data-loading,
-plotting, and Illustris workflows belong in downstream scripts or examples, not
+plotting and Illustris workflows belong in downstream scripts or examples, not
 in the package dependency surface.

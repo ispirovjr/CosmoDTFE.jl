@@ -78,7 +78,7 @@ density value, or `0.0` outside the tessellated volume.
 """
 struct DensityEstimator <: AbstractEstimator{Float64}
     bvh::BoundingVolumeHierarchy
-    triangulation::Triangulation3D
+    triangulation::Triangulation3D{Float64}
     tetrahedra::Matrix{Int}
 end
 
@@ -124,7 +124,7 @@ DTFE velocity estimator. Calling the estimator at a point returns an
 """
 struct VelocityEstimator <: AbstractEstimator{SVector{3,Float64}}
     bvh::BoundingVolumeHierarchy
-    triangulation::Triangulation3D
+    triangulation::Triangulation3D{Float64}
     tetrahedra::Matrix{Int}
     velocities::Vector{SVector{3,Float64}}
 end

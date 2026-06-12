@@ -33,16 +33,18 @@ include("Tessellate.jl")
 include("Searchers.jl")
 include("Estimators.jl")
 include("PeriodicEstimators.jl")
+include("PhaseSpaceEstimators.jl")
 include("CompositeEstimators.jl")
 
 # Public API exports
 export Point3, Triangulation3D
 export BoundingVolumeHierarchy, BVHTree, BVHLeaf, BVHNode
 export tessellate
-export findSimplex, findId, recursiveSearch
+export findSimplex, findId, findAllIds, recursiveSearch
 export dtfe, DensityEstimator
 export VelocityEstimator, velocityGradient
 export PeriodicEstimator
+export PhaseSpaceEstimator, PeriodicPhaseSpaceEstimator, streamNumber
 export CompositeEstimator, CompositeBVHTree, CompositeBVHLeaf, CompositeBVHNode
 
 end # module

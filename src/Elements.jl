@@ -9,9 +9,9 @@ toPoint3Vector(points::AbstractVector) = [Point3(point) for point in points]
 
 Result of Delaunay tessellation with per-vertex DTFE density estimates.
 """
-struct Triangulation3D
+struct Triangulation3D{T}
     points::Vector{Point3}
-    rhoStar::Vector{Float64}
+    rhoStar::Vector{T}
 end
 
 """
@@ -44,19 +44,19 @@ function Triangulation3D(points::Vector{Point3}, tets::AbstractMatrix, weights::
     length(weights) == length(points) || throw(ArgumentError("length of weights must match length of points"))
 
     nPoints = length(points)
-    rhoStars = zeros(nPoints)
+    rhoStar = zeros(nPoints)
 
     @inbounds for tet in eachrow(tets)
         pos = points[tet]
         vol = computeVolume(pos)
         for i in tet
-            rhoStars[i] += vol
+            rhoStar[i] += vol
         end
     end
 
     @inbounds for i in 1:nPoints
-        rhoStars[i] = 4.0 * weights[i] / rhoStars[i]
+        rhoStar[i] = 4.0 * weights[i] / rhoStar[i]
     end
 
-    return Triangulation3D(points, rhoStars)
+    return Triangulation3D{Float64}(points, rhoStar)
 end

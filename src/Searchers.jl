@@ -74,6 +74,32 @@ function findId(point::AbstractVector, coords::AbstractVector, tetrahedra::Abstr
     return nothing
 end
 
+"""
+    findAllIds(point, coords, tetrahedra, bvh)
+
+Return all tetrahedra in the BVH leaf neighborhood that contain `point`.
+This is intended for warped phase-space tessellations where tetrahedra can
+overlap in evaluation coordinates.
+"""
+function findAllIds(point::AbstractVector, coords::AbstractVector, tetrahedra::AbstractMatrix{<:Integer}, bvh::BoundingVolumeHierarchy)
+    staticPoint = Point3(point)
+    indices = recursiveSearch(staticPoint, bvh.tree, bvh.bbox)
+    matches = Int[]
+
+    @inbounds for tetrahedronId in indices
+        vertexOne = coords[tetrahedra[tetrahedronId, 1]]
+        vertexTwo = coords[tetrahedra[tetrahedronId, 2]]
+        vertexThree = coords[tetrahedra[tetrahedronId, 3]]
+        vertexFour = coords[tetrahedra[tetrahedronId, 4]]
+
+        if intersection3D(staticPoint, (vertexOne, vertexTwo, vertexThree, vertexFour))
+            push!(matches, tetrahedronId)
+        end
+    end
+
+    return matches
+end
+
 function earlyStopSearch(point::SVector{3,Float64}, simplices::AbstractMatrix)
     for (i, simplex) in enumerate(eachrow(simplices))
         if intersection3D(point, simplex)
