@@ -6,7 +6,14 @@ using StaticArrays
     nSets = 8
     nPoints = 10_000
 
-    sharedPoints = [SVector{3,Float64}(rand(), rand(), rand()) for _ in 1:nPoints]
+    sharedPoints = [
+        SVector{3,Float64}(
+            mod(i * sqrt(2.0), 1.0),
+            mod(i * sqrt(3.0), 1.0),
+            mod(i * sqrt(5.0), 1.0),
+        )
+        for i in 1:nPoints
+    ]
 
     coordResults = Vector{Any}(undef, nSets)
     tetResults = Vector{Any}(undef, nSets)

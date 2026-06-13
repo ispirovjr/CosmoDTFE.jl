@@ -1,12 +1,21 @@
 using Test
 using StaticArrays
-using LinearAlgebra
 using CosmoDTFE
 
 @testset "Searchers" begin
+    separatedTetPoints = [
+        Point3(0.0, 0.0, 0.0),
+        Point3(1.0, 0.0, 0.0),
+        Point3(0.0, 1.0, 0.0),
+        Point3(0.0, 0.0, 1.0),
+        Point3(2.0, 0.0, 0.0),
+        Point3(3.0, 0.0, 0.0),
+        Point3(2.0, 1.0, 0.0),
+        Point3(2.0, 0.0, 1.0),
+    ]
+    separatedTets = [1 2 3 4; 5 6 7 8]
 
-    @testset "intersection3D correctness" begin
-        # Create a unit tetrahedron
+    @testset "intersection3D handles interiors and boundaries" begin
         simplex = SMatrix{4,3,Float64}([
             0.0 0.0 0.0;
             1.0 0.0 0.0;
@@ -14,59 +23,50 @@ using CosmoDTFE
             0.0 0.0 1.0
         ])
 
-        # Point inside tetrahedron (
-        centroid = SVector{3,Float64}(0.25, 0.25, 0.25)
-        @test CosmoDTFE.intersection3D(centroid, simplex) == true
+        reversedSimplex = SMatrix{4,3,Float64}([
+            0.0 0.0 1.0;
+            0.0 1.0 0.0;
+            1.0 0.0 0.0;
+            0.0 0.0 0.0
+        ])
 
-        # Point outside tetrahedron
-        outside = SVector{3,Float64}(2.0, 2.0, 2.0)
-        @test CosmoDTFE.intersection3D(outside, simplex) == false
-
-        # Point at vertex (boundary case)
-        atVertex = SVector{3,Float64}(0.0, 0.0, 0.0)
-        @test CosmoDTFE.intersection3D(atVertex, simplex) == true
-
+        @test CosmoDTFE.intersection3D(Point3(0.25, 0.25, 0.25), simplex)
+        @test CosmoDTFE.intersection3D(Point3(0.25, 0.25, 0.25), reversedSimplex)
+        @test CosmoDTFE.intersection3D(Point3(0.0, 0.0, 0.0), simplex)
+        @test CosmoDTFE.intersection3D(Point3(1/3, 1/3, 1/3), simplex)
+        @test !CosmoDTFE.intersection3D(Point3(0.34, 0.34, 0.34), simplex)
+        @test !CosmoDTFE.intersection3D(Point3(-0.01, 0.25, 0.25), simplex)
     end
 
-    @testset "intersection3D with Vector{Float64}" begin
-        # Test the Vector{Float64} overload
-        simplex = [
+    @testset "findId returns deterministic simplex ids" begin
+        simplices = separatedTetPoints[separatedTets]
+        bvh = BoundingVolumeHierarchy(reduce(hcat, separatedTetPoints)[:, separatedTets], 4)
+
+        @test findId(Point3(0.25, 0.25, 0.25), simplices, bvh) == 1
+        @test findId(Point3(2.25, 0.25, 0.25), simplices, bvh) == 2
+        @test findId(Point3(10.0, 10.0, 10.0), simplices, bvh) === nothing
+    end
+
+    @testset "memory-efficient findId matches matrix-simplex findId" begin
+        simplices = separatedTetPoints[separatedTets]
+        bvh = BoundingVolumeHierarchy(reduce(hcat, separatedTetPoints)[:, separatedTets], 4)
+
+        for queryPoint in (Point3(0.25, 0.25, 0.25), Point3(2.25, 0.25, 0.25))
+            @test findId(queryPoint, separatedTetPoints, separatedTets, bvh) == findId(queryPoint, simplices, bvh)
+        end
+    end
+
+    @testset "findAllIds returns every overlapping tetrahedron" begin
+        points = [
             Point3(0.0, 0.0, 0.0),
             Point3(1.0, 0.0, 0.0),
             Point3(0.0, 1.0, 0.0),
-            Point3(0.0, 0.0, 1.0)
+            Point3(0.0, 0.0, 1.0),
         ]
+        tetrahedra = [1 2 3 4; 1 2 3 4]
+        bvh = BoundingVolumeHierarchy(reduce(hcat, points)[:, tetrahedra], 4)
 
-        inside = [0.25, 0.25, 0.25]
-        @test CosmoDTFE.intersection3D(inside, simplex) == true
-
-        outside = [2.0, 2.0, 2.0]
-        @test CosmoDTFE.intersection3D(outside, simplex) == false
+        @test findAllIds(Point3(0.25, 0.25, 0.25), points, tetrahedra, bvh) == [1, 2]
+        @test isempty(findAllIds(Point3(2.0, 2.0, 2.0), points, tetrahedra, bvh))
     end
-
-    @testset "findId with BVH integration" begin
-
-        points = [Point3(rand(), rand(), rand()) for _ in 1:50]
-        est = DensityEstimator(points, 6)
-        bvh = est.bvh
-        triangulation = est.triangulation
-        tets = est.tetrahedra
-
-        simplices = triangulation.points[tets]
-
-        testPoint = [0.5, 0.5, 0.5]
-        idx = findId(testPoint, simplices, bvh)
-
-        #@test idx !== nothing
-
-        if idx !== nothing
-            @test idx >= 1
-            @test idx <= size(tets, 1)
-        end
-
-        outsidePoint = [100.0, 100.0, 100.0]
-        outsideIdx = findId(outsidePoint, simplices, bvh)
-        @test outsideIdx === nothing
-    end
-
 end

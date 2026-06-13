@@ -34,22 +34,36 @@ using CosmoDTFE
         # Matrix input
         vertMatrix = [0.0 1.0 0.0 0.0; 0.0 0.0 1.0 0.0; 0.0 0.0 0.0 1.0]
         @test CosmoDTFE.computeVolume(vertMatrix) ≈ 1 / 6
+
+        reversedVerts = (v4, v3, v2, v1)
+        @test CosmoDTFE.computeVolume(reversedVerts) ≈ 1 / 6
+
+        degenerateVerts = (v1, v2, v3, Point3(0.25, 0.25, 0.0))
+        @test CosmoDTFE.computeVolume(degenerateVerts) ≈ 0.0
     end
 
     @testset "Triangulation3D construction" begin
-        # Create simple point cloud and tessellate
-        points = [Point3(rand(), rand(), rand()) for _ in 1:30]
+        points = [
+            Point3(0.00, 0.00, 0.00),
+            Point3(1.00, 0.00, 0.00),
+            Point3(0.00, 1.00, 0.00),
+            Point3(0.00, 0.00, 1.00),
+            Point3(0.83, 0.31, 0.47),
+            Point3(0.26, 0.72, 0.58),
+            Point3(0.54, 0.46, 0.91),
+            Point3(0.77, 0.88, 0.22),
+        ]
         coords, tets = tessellate(points)
 
         triangulation = Triangulation3D(points, tets)
 
-        @test length(triangulation.points) == 30
-        @test length(triangulation.rhoStar) == 30
+        @test length(triangulation.points) == length(points)
+        @test length(triangulation.rhoStar) == length(points)
         @test all(isfinite.(triangulation.rhoStar))
         @test all(triangulation.rhoStar .> 0)  # Densities should be positive
 
         # Bounds check tests
-        bad_weights = rand(29) # Deliberately shorter weights vector
+        bad_weights = ones(length(points) - 1)
         @test_throws ArgumentError Triangulation3D(points, tets, bad_weights)
     end
 

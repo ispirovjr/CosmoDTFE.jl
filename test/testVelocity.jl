@@ -3,13 +3,11 @@ using StaticArrays
 using LinearAlgebra
 using CosmoDTFE
 
-function makeGridPoints(nSide=5)
-    points = [SVector{3,Float64}(xValue, yValue, zValue) for xValue in 1:nSide, yValue in 1:nSide, zValue in 1:nSide]
-    return vec(points)
-end
-
 @testset "VelocityEstimator" begin
-    points = makeGridPoints(5)
+    points = vec([
+        SVector{3,Float64}(xValue, yValue, zValue)
+        for xValue in 1:5, yValue in 1:5, zValue in 1:5
+    ])
 
     @testset "Constant Velocity Field" begin
         constantVelocity = SVector(1.0, 2.0, 3.0)
@@ -69,7 +67,10 @@ end
     end
 
     @testset "Bounds Checking" begin
-        badPoints = makeGridPoints(2)
+        badPoints = vec([
+            SVector{3,Float64}(xValue, yValue, zValue)
+            for xValue in 1:2, yValue in 1:2, zValue in 1:2
+        ])
         badVelocities = [SVector(0.0, 0.0, 0.0) for _ in 1:7]
 
         @test_throws ArgumentError VelocityEstimator(badPoints, badVelocities)

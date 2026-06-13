@@ -19,7 +19,7 @@ function unwrapWarpedPoint(q::Point3, x::Point3, boxSize::Point3)
     )
 end
 
-function periodicPhaseSpaceCopies(sourcePoints::Vector{Point3}, warpedPoints::Vector{Point3}, values, boxMin::Point3, boxSize::Point3, padding::Real, unwrap::Bool)
+function periodicPhaseSpaceCopies(sourcePoints::Vector{Point3}, warpedPoints::Vector{Point3}, values, boxMin::Point3, boxSize::Point3, padding::Real)
     pad = padding * boxSize
     boxMax = boxMin + boxSize
     copySourcePts = Point3[]
@@ -31,21 +31,30 @@ function periodicPhaseSpaceCopies(sourcePoints::Vector{Point3}, warpedPoints::Ve
 
     @inbounds for pointId in eachindex(sourcePoints)
         q = sourcePoints[pointId]
-        xRaw = warpedPoints[pointId]
-        x = unwrap ? unwrapWarpedPoint(q, xRaw, boxSize) : xRaw
+        x = unwrapWarpedPoint(q, warpedPoints[pointId], boxSize)
+
+        shift = Point3(0.0, 0.0, 0.0) #in case unwrapping moves x out of box
+        x[1] < boxMin[1] && (shift += Point3(boxSize[1], 0.0, 0.0))
+        x[1] > boxMax[1] && (shift -= Point3(boxSize[1], 0.0, 0.0))
+        x[2] < boxMin[2] && (shift += Point3(0.0, boxSize[2], 0.0))
+        x[2] > boxMax[2] && (shift -= Point3(0.0, boxSize[2], 0.0))
+        x[3] < boxMin[3] && (shift += Point3(0.0, 0.0, boxSize[3]))
+        x[3] > boxMax[3] && (shift -= Point3(0.0, 0.0, boxSize[3]))
+        q += shift
+        x += shift
 
         xShifts = [0.0]
         yShifts = [0.0]
         zShifts = [0.0]
 
-        xRaw[1] < boxMin[1] + pad[1] && push!(xShifts, x[1] > boxMax[1] ? -boxSize[1] : boxSize[1])
-        xRaw[1] > boxMax[1] - pad[1] && push!(xShifts, x[1] < boxMin[1] ? boxSize[1] : -boxSize[1])
+        x[1] < boxMin[1] + pad[1] && push!(xShifts, boxSize[1])
+        x[1] > boxMax[1] - pad[1] && push!(xShifts, -boxSize[1])
 
-        xRaw[2] < boxMin[2] + pad[2] && push!(yShifts, x[2] > boxMax[2] ? -boxSize[2] : boxSize[2])
-        xRaw[2] > boxMax[2] - pad[2] && push!(yShifts, x[2] < boxMin[2] ? boxSize[2] : -boxSize[2])
+        x[2] < boxMin[2] + pad[2] && push!(yShifts, boxSize[2])
+        x[2] > boxMax[2] - pad[2] && push!(yShifts, -boxSize[2])
 
-        xRaw[3] < boxMin[3] + pad[3] && push!(zShifts, x[3] > boxMax[3] ? -boxSize[3] : boxSize[3])
-        xRaw[3] > boxMax[3] - pad[3] && push!(zShifts, x[3] < boxMin[3] ? boxSize[3] : -boxSize[3])
+        x[3] < boxMin[3] + pad[3] && push!(zShifts, boxSize[3])
+        x[3] > boxMax[3] - pad[3] && push!(zShifts, -boxSize[3])
 
         for xShift in xShifts, yShift in yShifts, zShift in zShifts
             shift = Point3(xShift, yShift, zShift)
@@ -85,13 +94,13 @@ function PhaseSpaceEstimator(sourcePoints, warpedPoints, values; depth::Int=9)
 end
 
 """
-    PeriodicPhaseSpaceEstimator(sourcePoints, warpedPoints, values; boxSize, boxMin=Point3(0,0,0), padding=0.05, depth=9, unwrap=true)
+    PeriodicPhaseSpaceEstimator(sourcePoints, warpedPoints, values; boxSize, boxMin=Point3(0,0,0), padding=0.05, depth=9)
 
 Build a periodic phase-space estimator. Boundary copies are selected from
-`warpedPoints`; each copied warped point carries the matching source point and
-value. The result is a normal `PhaseSpaceEstimator`.
+minimum-image-unwrapped `warpedPoints`; each copied warped point carries the
+matching source point and value. The result is a normal `PhaseSpaceEstimator`.
 """
-function PeriodicPhaseSpaceEstimator(sourcePoints, warpedPoints, values; boxSize, boxMin=Point3(0.0, 0.0, 0.0), padding::Real=0.05, depth::Int=9, unwrap::Bool=true)
+function PeriodicPhaseSpaceEstimator(sourcePoints, warpedPoints, values; boxSize, boxMin=Point3(0.0, 0.0, 0.0), padding::Real=0.05, depth::Int=9)
     sourcePts = toPoint3Vector(sourcePoints)
     warpedPts = toPoint3Vector(warpedPoints)
     interpValues = collect(values)
@@ -100,7 +109,7 @@ function PeriodicPhaseSpaceEstimator(sourcePoints, warpedPoints, values; boxSize
 
     boxMin = Point3(boxMin)
     boxSize = Point3(boxSize)
-    copySourcePts, copyWarpedPts, copyValues = periodicPhaseSpaceCopies(sourcePts, warpedPts, interpValues, boxMin, boxSize, padding, unwrap)
+    copySourcePts, copyWarpedPts, copyValues = periodicPhaseSpaceCopies(sourcePts, warpedPts, interpValues, boxMin, boxSize, padding)
     return PhaseSpaceEstimator(copySourcePts, copyWarpedPts, copyValues; depth=depth)
 end
 
