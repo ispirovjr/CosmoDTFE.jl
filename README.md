@@ -101,9 +101,3 @@ streams = streamNumber(phaseEstimator, queryPoint)
 - `tessellate`: TetGen-backed tetrahedralization
 - `BoundingVolumeHierarchy`: BVH acceleration structure
 
-## Development Notes
-
-The package intentionally does not track `Manifest.toml`; applications and
-analysis projects should manage their own manifests. Heavy data-loading,
-plotting and Illustris workflows belong in downstream scripts or examples, not
-in the package dependency surface.
