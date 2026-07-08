@@ -156,7 +156,6 @@ estimator.
 function VelocityEstimator(est::DensityEstimator, velocities::AbstractVector)
     length(velocities) == length(est.triangulation.points) ||
         throw(ArgumentError("length of velocities must match length of points"))
-    @warn "Generating velocity field from density field. If the density field was mass weighted, this estimates momenta, not velocities."
     vels = [Point3(velocity) for velocity in velocities]
     return VelocityEstimator(est.bvh, est.triangulation, est.tetrahedra, vels)
 end

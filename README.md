@@ -15,7 +15,7 @@ Delaunay tessellation and a bounding volume hierarchy for fast spatial lookup.
 
 ```julia
 using Pkg
-Pkg.add(url="https://github.com/ispirovjr/CosmoDTFE.jl")
+Pkg.add("CosmoDTFE")
 ```
 
 For local development:
