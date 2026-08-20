@@ -1,6 +1,6 @@
 name = "CosmoDTFE"
 uuid = "d376d98b-24c2-4fac-bf6b-9000e4999c11"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Ivan Spirov <ispirovjr@gmail.com>"]
 
 [deps]
