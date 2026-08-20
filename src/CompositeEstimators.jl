@@ -10,7 +10,7 @@ Leaf node of the composite BVH tree containing the actual abstract estimator and
 """
 struct CompositeBVHLeaf{T,EstType<:AbstractEstimator{T}} <: CompositeBVHTree{T}
     estimator::EstType
-    bounds::Matrix{Float64} # 3x2 matrix [mins maxs]
+    bounds::SearchBox3D
 end
 
 """
@@ -24,7 +24,7 @@ struct CompositeBVHNode{T} <: CompositeBVHTree{T}
     rightChild::CompositeBVHTree{T}
     splitAxis::Int
     splitValue::Float64
-    bounds::Matrix{Float64}
+    bounds::SearchBox3D
 end
 
 """
@@ -153,7 +153,7 @@ function buildCompositeTree(estType::Type, T::Type, globalPoints, globalProperti
         mins[d] = minimum(globalPoints[i][d] for i in indices)
         maxs[d] = maximum(globalPoints[i][d] for i in indices)
     end
-    bounds = hcat(mins, maxs)
+    bounds = SearchBox3D(hcat(mins, maxs))
 
     # Base Case: Reach leaf max points
     if length(indices) <= maxPoints
@@ -224,7 +224,7 @@ function buildCompositeTree(estType::Type, T::Type, globalPoints, globalProperti
         mins[d] = minimum(globalPoints[i][d] for i in indices)
         maxs[d] = maximum(globalPoints[i][d] for i in indices)
     end
-    bounds = hcat(mins, maxs)
+    bounds = SearchBox3D(hcat(mins, maxs))
 
     # Base Case: Reach leaf max points
     if length(indices) <= maxPoints
@@ -415,7 +415,7 @@ function buildCompositeTree(estType::Type, T::Type, globalPoints, globalProperti
         mins[d] = minimum(globalPoints[i][d] for i in indices)
         maxs[d] = maximum(globalPoints[i][d] for i in indices)
     end
-    bounds = hcat(mins, maxs)
+    bounds = SearchBox3D(hcat(mins, maxs))
 
     # Spatial partitioning by center of mass
     cm = zeros(3)
@@ -461,7 +461,7 @@ function buildCompositeTree(estType::Type, T::Type, globalPoints, globalProperti
         mins[d] = minimum(globalPoints[i][d] for i in indices)
         maxs[d] = maximum(globalPoints[i][d] for i in indices)
     end
-    bounds = hcat(mins, maxs)
+    bounds = SearchBox3D(hcat(mins, maxs))
 
     # Spatial partitioning by center of mass
     cm = zeros(3)

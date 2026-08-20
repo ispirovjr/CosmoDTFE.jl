@@ -1,18 +1,23 @@
-function recursiveSearch(point, leaf::BVHLeaf, searchBox::Matrix)
-    return leaf.data
+@inline function recursiveSearch(point, bvh::BoundingVolumeHierarchy)
+    return recursiveSearch(Point3(point), bvh.tree, bvh.bbox)
 end
 
-function recursiveSearch(point, tree::BVHNode, searchBox::Matrix)
+@inline recursiveSearch(::Point3, leaf::BVHLeaf, ::SearchBox3D) = leaf.data
+
+@inline function recursiveSearch(
+    point::Point3,
+    tree::BVHNode,
+    searchBox::SearchBox3D,
+)
     ax = tree.depth % 3 + 1
-    newBox = copy(searchBox)
     line = (searchBox[ax, 2] + searchBox[ax, 1]) / 2
 
     if point[ax] < line
-        newBox[ax, 2] = line
+        newBox = setindex(searchBox, line, ax, 2)
         return recursiveSearch(point, tree.leftChild, newBox)
     end
 
-    newBox[ax, 1] = line
+    newBox = setindex(searchBox, line, ax, 1)
     return recursiveSearch(point, tree.rightChild, newBox)
 end
 
@@ -23,7 +28,7 @@ Find the simplex containing `point`. Returns `nothing` when no simplex contains
 the point.
 """
 function findSimplex(point, simplices, bvh::BoundingVolumeHierarchy)
-    indices = recursiveSearch(point, bvh.tree, bvh.bbox)
+    indices = recursiveSearch(point, bvh)
     simplexNeighborhood = simplices[indices, :]
 
     idx = earlyStopSearch(point, simplexNeighborhood)
@@ -43,7 +48,7 @@ function findId(point::AbstractVector, simplices::AbstractMatrix, bvh::BoundingV
 end
 
 function findId(point::SVector{3,Float64}, simplices::AbstractMatrix, bvh::BoundingVolumeHierarchy)
-    indices = recursiveSearch(point, bvh.tree, bvh.bbox)
+    indices = recursiveSearch(point, bvh)
     simplexNeighborhood = @view simplices[indices, :]
     idx = earlyStopSearch(point, simplexNeighborhood)
 
@@ -59,7 +64,7 @@ Returns the first containing tetrahedron id, or `nothing`.
 """
 function findId(point::AbstractVector, coords::AbstractVector, tetrahedra::AbstractMatrix{<:Integer}, bvh::BoundingVolumeHierarchy)
     p = Point3(point)
-    indices = recursiveSearch(p, bvh.tree, bvh.bbox)
+    indices = recursiveSearch(p, bvh)
 
     @inbounds for tetId in indices
         v1 = coords[tetrahedra[tetId, 1]]
@@ -83,7 +88,7 @@ overlap in evaluation coordinates.
 """
 function findAllIds(point::AbstractVector, coords::AbstractVector, tetrahedra::AbstractMatrix{<:Integer}, bvh::BoundingVolumeHierarchy)
     staticPoint = Point3(point)
-    indices = recursiveSearch(staticPoint, bvh.tree, bvh.bbox)
+    indices = recursiveSearch(staticPoint, bvh)
     matches = Int[]
 
     @inbounds for tetrahedronId in indices

@@ -32,7 +32,7 @@ BVH tree plus a global `3 x 2` bounding box stored as `[mins maxs]`.
 """
 struct BoundingVolumeHierarchy
     tree::BVHTree
-    bbox::Matrix{Float64}
+    bbox::SearchBox3D
 end
 
 """
@@ -88,6 +88,7 @@ function BoundingVolumeHierarchy(data, depth::Int; box=nothing)
         globalMax = maximum(allMaxs, dims=2)
         box = hcat(globalMin, globalMax)
     end
+    box = SearchBox3D(box)
 
     tree = generateBvhTree(boxes, depth, box)
     return BoundingVolumeHierarchy(tree, box)
@@ -98,12 +99,12 @@ end
 
 Generate a BVH tree from precomputed simplex boxes.
 """
-function generateBvhTree(boxes, depth::Int, limitBox::Matrix)
+function generateBvhTree(boxes, depth::Int, limitBox::SearchBox3D)
     indices = collect(1:size(boxes, 2))
     return generateBvhTree(boxes, depth, limitBox, indices)
 end
 
-function generateBvhTree(boxes, depth::Int, limBox::Matrix, indices)
+function generateBvhTree(boxes, depth::Int, limBox::SearchBox3D, indices)
     if depth == 0 || length(indices) < 2
         return BVHLeaf(collect(indices))
     end
@@ -116,11 +117,8 @@ function generateBvhTree(boxes, depth::Int, limBox::Matrix, indices)
     leftIds = indices[mins.≤line]
     rightIds = indices[maxs.≥line]
 
-    leftBox = copy(limBox)
-    leftBox[ax, 2] = line
-
-    rightBox = copy(limBox)
-    rightBox[ax, 1] = line
+    leftBox = setindex(limBox, line, ax, 2)
+    rightBox = setindex(limBox, line, ax, 1)
 
     return BVHNode(
         depth,

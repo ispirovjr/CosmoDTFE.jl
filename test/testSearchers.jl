@@ -2,6 +2,8 @@ using Test
 using StaticArrays
 using CosmoDTFE
 
+searchAllocations(point, bvh) = @allocated recursiveSearch(point, bvh)
+
 @testset "Searchers" begin
     separatedTetPoints = [
         Point3(0.0, 0.0, 0.0),
@@ -14,6 +16,22 @@ using CosmoDTFE
         Point3(2.0, 0.0, 1.0),
     ]
     separatedTets = [1 2 3 4; 5 6 7 8]
+
+    @testset "BVH traversal is allocation free and API compatible" begin
+        bvh = BoundingVolumeHierarchy(
+            reduce(hcat, separatedTetPoints)[:, separatedTets],
+            4,
+        )
+        point = Point3(0.25, 0.25, 0.25)
+        recursiveSearch(point, bvh)
+        @test searchAllocations(point, bvh) == 0
+
+        depthZero = BoundingVolumeHierarchy(
+            reduce(hcat, separatedTetPoints)[:, separatedTets],
+            0,
+        )
+        @test recursiveSearch(point, depthZero) === depthZero.tree.data
+    end
 
     @testset "intersection3D handles interiors and boundaries" begin
         simplex = SMatrix{4,3,Float64}([

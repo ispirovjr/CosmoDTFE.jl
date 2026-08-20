@@ -43,8 +43,8 @@ using CosmoDTFE
         box = [0.0 1.0; 0.0 1.0; 0.0 1.0]
         bvh = BoundingVolumeHierarchy(simplices, 1; box=box)
 
-        @test 1 in recursiveSearch(Point3(0.25, 0.25, 0.25), bvh.tree, bvh.bbox)
-        @test 1 in recursiveSearch(Point3(0.25, 0.75, 0.25), bvh.tree, bvh.bbox)
+        @test 1 in recursiveSearch(Point3(0.25, 0.25, 0.25), bvh)
+        @test 1 in recursiveSearch(Point3(0.25, 0.75, 0.25), bvh)
     end
 
     @testset "leaf equality ignores candidate order" begin

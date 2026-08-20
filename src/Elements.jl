@@ -1,6 +1,9 @@
 """3D point type using StaticArrays for performance."""
 const Point3 = SVector{3,Float64}
 
+"""3×2 static bounding box: columns are `[mins maxs]`."""
+const SearchBox3D = SMatrix{3,2,Float64,6}
+
 """Convert point-like inputs into a fresh vector of `Point3` values."""
 toPoint3Vector(points::AbstractVector) = [Point3(point) for point in points]
 
