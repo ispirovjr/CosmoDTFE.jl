@@ -17,6 +17,9 @@ using CosmoDTFE
         queryPoint = SVector(2.5, 2.5, 2.5)
         velocityValue, divergence, shear, curl = velocityGradient(estimator, queryPoint)
 
+        @test estimator.tetrahedra isa Matrix{Int32}
+        @test size(estimator.tetrahedra, 1) == 4
+        @test strides(estimator.tetrahedra) == (1, 4)
         @test velocityValue ≈ constantVelocity
         @test divergence ≈ 0.0 atol = 1e-10
         @test norm(shear) ≈ 0.0 atol = 1e-10

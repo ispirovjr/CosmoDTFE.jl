@@ -53,10 +53,10 @@ end
 
 @inline function simplexData(data, tets, tetId::Integer)
     @inbounds return (
-        data[tets[tetId, 1]],
-        data[tets[tetId, 2]],
-        data[tets[tetId, 3]],
-        data[tets[tetId, 4]],
+        data[tets[1, tetId]],
+        data[tets[2, tetId]],
+        data[tets[3, tetId]],
+        data[tets[4, tetId]],
     )
 end
 
@@ -65,8 +65,7 @@ function buildEstimatorGeometry(points, depth::Int)
     coords, tets = tessellate(ps)
     tessPoints = matrixColumnsToPoints(coords)
 
-    simplices = coords[:, tets]
-    bvh = BoundingVolumeHierarchy(simplices, depth)
+    bvh = BoundingVolumeHierarchy(tessPoints, tets, depth)
     return tessPoints, tets, bvh
 end
 
@@ -79,7 +78,7 @@ density value, or `0.0` outside the tessellated volume.
 struct DensityEstimator <: AbstractEstimator{Float64}
     bvh::BoundingVolumeHierarchy
     triangulation::Triangulation3D{Float64}
-    tetrahedra::Matrix{Int}
+    tetrahedra::Matrix{Int32}
 end
 
 """
@@ -125,7 +124,7 @@ DTFE velocity estimator. Calling the estimator at a point returns an
 struct VelocityEstimator <: AbstractEstimator{SVector{3,Float64}}
     bvh::BoundingVolumeHierarchy
     triangulation::Triangulation3D{Float64}
-    tetrahedra::Matrix{Int}
+    tetrahedra::Matrix{Int32}
     velocities::Vector{SVector{3,Float64}}
 end
 

@@ -38,9 +38,9 @@ end
 """
     cornerSimplexMatrix(simplex)
 
-Return a `3 x 2` bounding box for one tetrahedron.
+Return a `3 x 2` bounding box for one `3 x 4` tetrahedron coordinate matrix.
 """
-function cornerSimplexMatrix(simplex)
+function cornerSimplexMatrix(simplex::AbstractMatrix)
     return hcat(minimum(simplex, dims=2), maximum(simplex, dims=2))
 end
 
@@ -61,29 +61,57 @@ end
 """
     getBoxes(data)
 
-Compute all simplex bounding boxes as an array with size `3 x nTetrahedra x 2`.
+Compute all simplex bounding boxes as an array with size
+`3 x 2 x nTetrahedra`. 
 """
 function getBoxes(data::Vector)
-    return permutedims(stack(cornerSimplexMatrix.(data)), (1, 3, 2))
+    return stack(cornerSimplexMatrix.(data))
 end
 
 function getBoxes(data::AbstractArray{T,3}) where T
-    minVals = dropdims(minimum(data, dims=3), dims=3)
-    maxVals = dropdims(maximum(data, dims=3), dims=3)
-    return cat(minVals, maxVals, dims=3)
+    minVals = minimum(data, dims=2)
+    maxVals = maximum(data, dims=2)
+    return cat(minVals, maxVals, dims=2)
 end
 
 """
-    BoundingVolumeHierarchy(data, depth; box=nothing)
+    getBoxes(points, tetrahedra)
 
-Construct a BVH from simplex coordinate data.
+Compute tetrahedron bounding boxes directly from a point vector and a
+`4 x nTetrahedra` connectivity matrix.
 """
-function BoundingVolumeHierarchy(data, depth::Int; box=nothing)
-    boxes = getBoxes(data)
+function getBoxes(points::AbstractVector, tetrahedra::AbstractMatrix{<:Integer})
+    boxes = Array{Float64}(undef, 3, 2, size(tetrahedra, 2))
 
+    @inbounds for tetrahedronId in axes(tetrahedra, 2)
+        pointOne = points[tetrahedra[1, tetrahedronId]]
+        pointTwo = points[tetrahedra[2, tetrahedronId]]
+        pointThree = points[tetrahedra[3, tetrahedronId]]
+        pointFour = points[tetrahedra[4, tetrahedronId]]
+
+        for axis in 1:3
+            boxes[axis, 1, tetrahedronId] = min(
+                pointOne[axis],
+                pointTwo[axis],
+                pointThree[axis],
+                pointFour[axis],
+            )
+            boxes[axis, 2, tetrahedronId] = max(
+                pointOne[axis],
+                pointTwo[axis],
+                pointThree[axis],
+                pointFour[axis],
+            )
+        end
+    end
+
+    return boxes
+end
+
+function buildBvh(boxes, depth::Int, box)
     if box === nothing
-        allMins = @view boxes[:, :, 1]
-        allMaxs = @view boxes[:, :, 2]
+        allMins = @view boxes[:, 1, :]
+        allMaxs = @view boxes[:, 2, :]
         globalMin = minimum(allMins, dims=2)
         globalMax = maximum(allMaxs, dims=2)
         box = hcat(globalMin, globalMax)
@@ -95,12 +123,33 @@ function BoundingVolumeHierarchy(data, depth::Int; box=nothing)
 end
 
 """
+    BoundingVolumeHierarchy(data, depth; box=nothing)
+
+Construct a BVH from simplex coordinate data.
+"""
+function BoundingVolumeHierarchy(data, depth::Int; box=nothing)
+    boxes = getBoxes(data)
+    return buildBvh(boxes, depth, box)
+end
+
+"""
+    BoundingVolumeHierarchy(points, tetrahedra, depth; box=nothing)
+
+Construct a BVH directly from point coordinates and a `4 x nTetrahedra`
+connectivity matrix.
+"""
+function BoundingVolumeHierarchy(points::AbstractVector, tetrahedra::AbstractMatrix{<:Integer}, depth::Int; box=nothing)
+    boxes = getBoxes(points, tetrahedra)
+    return buildBvh(boxes, depth, box)
+end
+
+"""
     generateBvhTree(boxes, depth, limitBox)
 
 Generate a BVH tree from precomputed simplex boxes.
 """
 function generateBvhTree(boxes, depth::Int, limitBox::SearchBox3D)
-    indices = collect(1:size(boxes, 2))
+    indices = collect(1:size(boxes, 3))
     return generateBvhTree(boxes, depth, limitBox, indices)
 end
 
@@ -110,8 +159,8 @@ function generateBvhTree(boxes, depth::Int, limBox::SearchBox3D, indices)
     end
 
     ax = depth % 3 + 1
-    mins = boxes[ax, indices, 1]
-    maxs = boxes[ax, indices, 2]
+    mins = boxes[ax, 1, indices]
+    maxs = boxes[ax, 2, indices]
     line = (limBox[ax, 2] + limBox[ax, 1]) / 2
     
     leftIds = indices[mins.≤line]

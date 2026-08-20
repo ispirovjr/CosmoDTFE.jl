@@ -25,22 +25,22 @@ end
     findSimplex(point, simplices, bvh)
 
 Find the simplex containing `point`. Returns `nothing` when no simplex contains
-the point.
+the point. 
 """
-function findSimplex(point, simplices, bvh::BoundingVolumeHierarchy)
+function findSimplex(point, simplices::AbstractMatrix, bvh::BoundingVolumeHierarchy)
     indices = recursiveSearch(point, bvh)
-    simplexNeighborhood = simplices[indices, :]
+    simplexNeighborhood = simplices[:, indices]
 
     idx = earlyStopSearch(point, simplexNeighborhood)
     idx === nothing && return nothing
 
-    return simplexNeighborhood[idx, :]
+    return simplexNeighborhood[:, idx]
 end
 
 """
     findId(point, simplices, bvh)
 
-Find the first simplex index containing `point`.
+Find the first simplex index containing `point`. 
 """
 function findId(point::AbstractVector, simplices::AbstractMatrix, bvh::BoundingVolumeHierarchy)
     p = Point3(point)
@@ -49,7 +49,7 @@ end
 
 function findId(point::SVector{3,Float64}, simplices::AbstractMatrix, bvh::BoundingVolumeHierarchy)
     indices = recursiveSearch(point, bvh)
-    simplexNeighborhood = @view simplices[indices, :]
+    simplexNeighborhood = @view simplices[:, indices]
     idx = earlyStopSearch(point, simplexNeighborhood)
 
     idx === nothing && return nothing
@@ -67,10 +67,10 @@ function findId(point::AbstractVector, coords::AbstractVector, tetrahedra::Abstr
     indices = recursiveSearch(p, bvh)
 
     @inbounds for tetId in indices
-        v1 = coords[tetrahedra[tetId, 1]]
-        v2 = coords[tetrahedra[tetId, 2]]
-        v3 = coords[tetrahedra[tetId, 3]]
-        v4 = coords[tetrahedra[tetId, 4]]
+        v1 = coords[tetrahedra[1, tetId]]
+        v2 = coords[tetrahedra[2, tetId]]
+        v3 = coords[tetrahedra[3, tetId]]
+        v4 = coords[tetrahedra[4, tetId]]
 
         if intersection3D(p, (v1, v2, v3, v4))
             return tetId
@@ -92,10 +92,10 @@ function findAllIds(point::AbstractVector, coords::AbstractVector, tetrahedra::A
     matches = Int[]
 
     @inbounds for tetrahedronId in indices
-        vertexOne = coords[tetrahedra[tetrahedronId, 1]]
-        vertexTwo = coords[tetrahedra[tetrahedronId, 2]]
-        vertexThree = coords[tetrahedra[tetrahedronId, 3]]
-        vertexFour = coords[tetrahedra[tetrahedronId, 4]]
+        vertexOne = coords[tetrahedra[1, tetrahedronId]]
+        vertexTwo = coords[tetrahedra[2, tetrahedronId]]
+        vertexThree = coords[tetrahedra[3, tetrahedronId]]
+        vertexFour = coords[tetrahedra[4, tetrahedronId]]
 
         if intersection3D(staticPoint, (vertexOne, vertexTwo, vertexThree, vertexFour))
             push!(matches, tetrahedronId)
@@ -106,7 +106,7 @@ function findAllIds(point::AbstractVector, coords::AbstractVector, tetrahedra::A
 end
 
 function earlyStopSearch(point::SVector{3,Float64}, simplices::AbstractMatrix)
-    for (i, simplex) in enumerate(eachrow(simplices))
+    for (i, simplex) in enumerate(eachcol(simplices))
         if intersection3D(point, simplex)
             return i
         end
@@ -118,12 +118,12 @@ function earlyStopSearch(point::AbstractVector, simplices::AbstractMatrix)
     return earlyStopSearch(Point3(point), simplices)
 end
 
-@inline function intersection3D(point::SVector{3,Float64}, simplex::SMatrix{4,3,Float64})
+@inline function intersection3D(point::SVector{3,Float64}, simplex::AbstractMatrix{<:Real})
     @inbounds begin
-        v1 = Point3(simplex[1, 1], simplex[1, 2], simplex[1, 3])
-        v2 = Point3(simplex[2, 1], simplex[2, 2], simplex[2, 3])
-        v3 = Point3(simplex[3, 1], simplex[3, 2], simplex[3, 3])
-        v4 = Point3(simplex[4, 1], simplex[4, 2], simplex[4, 3])
+        v1 = Point3(simplex[1, 1], simplex[2, 1], simplex[3, 1])
+        v2 = Point3(simplex[1, 2], simplex[2, 2], simplex[3, 2])
+        v3 = Point3(simplex[1, 3], simplex[2, 3], simplex[3, 3])
+        v4 = Point3(simplex[1, 4], simplex[2, 4], simplex[3, 4])
     end
     return intersection3D(point, (v1, v2, v3, v4))
 end
@@ -148,10 +148,4 @@ end
 
 @inline function intersection3D(point::AbstractVector, simplex)
     return intersection3D(Point3(point), simplex)
-end
-
-function intersection3D(point::AbstractVector, simplex::Matrix)
-    p = Point3(point)
-    s = SMatrix{4,3,Float64}(simplex)
-    return intersection3D(p, s)
 end

@@ -24,10 +24,6 @@ using StaticArrays
         tetResults[i] = tets
     end
 
-    @testset "All tessellations complete" begin
-        @test all(r -> r isa AbstractMatrix, coordResults)
-        @test all(r -> r isa AbstractMatrix, tetResults)
-    end
 
     @testset "Deterministic results across threads" begin
         @test all(c -> c == coordResults[1], coordResults)

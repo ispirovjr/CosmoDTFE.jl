@@ -4,7 +4,7 @@ using Statistics
 
 @testset "Estimators" begin
     function weightedMassFromVertexDensities(points, tetrahedra, rhoStar)
-        return sum(eachrow(tetrahedra)) do tet
+        return sum(eachcol(tetrahedra)) do tet
             vol = CosmoDTFE.computeVolume(points[tet])
             mean(rhoStar[tet]) * vol
         end
@@ -41,7 +41,7 @@ using Statistics
         Point3(0.0, 1.0, 0.0),
         Point3(0.0, 0.0, 1.0),
     ]
-    unitTet = [1 2 3 4]
+    unitTet = reshape(Int32[1, 2, 3, 4], 4, 1)
 
     irregularPoints = [
         Point3(0.00, 0.00, 0.00),
@@ -85,7 +85,7 @@ using Statistics
     @testset "dtfe performs exact barycentric interpolation inside one tetrahedron" begin
         weights = [1.0, 2.0, 3.0, 4.0]
         triangulation = Triangulation3D(unitTetPoints, unitTet, weights)
-        bvh = BoundingVolumeHierarchy(reduce(hcat, unitTetPoints)[:, unitTet], 2)
+        bvh = BoundingVolumeHierarchy(unitTetPoints, unitTet, 2)
 
         vertexDensities = triangulation.rhoStar
         lambda = [0.1, 0.2, 0.3, 0.4]
@@ -122,6 +122,9 @@ using Statistics
 
         totalMass = weightedMassFromVertexDensities(estimator.triangulation.points, estimator.tetrahedra, estimator.triangulation.rhoStar)
 
+        @test estimator.tetrahedra isa Matrix{Int32}
+        @test size(estimator.tetrahedra, 1) == 4
+        @test strides(estimator.tetrahedra) == (1, 4)
         @test totalMass ≈ sum(irregularWeights)
     end
 
@@ -160,6 +163,23 @@ using Statistics
 
         @test estimator(Point3(100.0, 100.0, 100.0)) == 0.0
         @test estimator(Point3(-1.0, -1.0, -1.0)) == 0.0
+    end
+
+    @testset "threaded evaluation matches scalar evaluation" begin
+        estimator = DensityEstimator(irregularPoints; depth=5)
+        queryPoints = [
+            Point3(0.25, 0.25, 0.25),
+            Point3(0.45, 0.37, 0.49),
+            Point3(0.72, 0.61, 0.58),
+        ]
+        grid = ([0.25, 0.50], [0.30, 0.60], [0.35, 0.55])
+
+        @test estimator(queryPoints) ≈ estimator.(queryPoints)
+        expectedGrid = [
+            estimator(Point3(x, y, z))
+            for x in grid[1], y in grid[2], z in grid[3]
+        ]
+        @test estimator(grid) ≈ expectedGrid
     end
 
     

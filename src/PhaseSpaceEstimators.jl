@@ -3,12 +3,12 @@
 
 Generic DTFE estimator for warped tessellations. The tessellation is generated
 from `sourcePoints`, then each tetrahedron is evaluated in `warpedPoints`.
-Overlapping warped tetrahedra contribute additively.
+Overlapping warped tetrahedra contribute additively. 
 """
 struct PhaseSpaceEstimator{T} <: AbstractEstimator{T}
     bvh::BoundingVolumeHierarchy
     triangulation::Triangulation3D{T}
-    tetrahedra::Matrix{Int}
+    tetrahedra::Matrix{Int32}
 end
 
 function unwrapWarpedPoint(q::Point3, x::Point3, boxSize::Point3)
@@ -83,13 +83,12 @@ function PhaseSpaceEstimator(sourcePoints, warpedPoints, values; depth::Int=9)
 
     _, tetrahedra = tessellate(sourcePts)
     triangulation = Triangulation3D{eltype(interpValues)}(warpedPts, interpValues)
-    warpedCoords = pointsToColumns(warpedPts)
-    bvh = BoundingVolumeHierarchy(warpedCoords[:, tetrahedra], depth)
+    bvh = BoundingVolumeHierarchy(warpedPts, tetrahedra, depth)
 
     return PhaseSpaceEstimator{eltype(triangulation.rhoStar)}(
         bvh,
         triangulation,
-        Matrix{Int}(tetrahedra),
+        tetrahedra,
     )
 end
 

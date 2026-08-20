@@ -18,8 +18,11 @@ using CosmoDTFE
         coords, tets = tessellate(points)
 
         @test size(coords, 1) == 3
-        @test size(tets, 2) == 4
-        @test size(tets, 1) > 0
+        @test tets isa Matrix{Int32}
+        @test size(tets, 1) == 4
+        @test size(tets, 2) > 0
+        @test strides(tets) == (1, 4)
+        @test size(coords[:, tets]) == (3, 4, size(tets, 2))
         @test all(tets .>= 1)
         @test all(tets .<= size(coords, 2))
         @test Set(points) == Set(Point3(coords[:, pointId]) for pointId in axes(coords, 2))
@@ -40,7 +43,7 @@ using CosmoDTFE
         points = irregularPoints
         coords, tets = tessellate(points)
         tessPoints = [Point3(coords[:, pointId]) for pointId in axes(coords, 2)]
-        volumes = [CosmoDTFE.computeVolume(tessPoints[tet]) for tet in eachrow(tets)]
+        volumes = [CosmoDTFE.computeVolume(tessPoints[tet]) for tet in eachcol(tets)]
 
         @test all(volume -> volume > 0.0, volumes)
     end
@@ -54,7 +57,7 @@ using CosmoDTFE
         ]
         coords, tets = tessellate(cubePoints)
         tessPoints = [Point3(coords[:, pointId]) for pointId in axes(coords, 2)]
-        totalVolume = sum(CosmoDTFE.computeVolume(tessPoints[tet]) for tet in eachrow(tets))
+        totalVolume = sum(CosmoDTFE.computeVolume(tessPoints[tet]) for tet in eachcol(tets))
 
         @test all(tets .>= 1)
         @test all(tets .<= size(coords, 2))

@@ -11,6 +11,7 @@ toPoint3Vector(points::AbstractVector) = [Point3(point) for point in points]
     Triangulation3D
 
 Result of Delaunay tessellation with per-vertex DTFE density estimates.
+Tetrahedron connectivity has size `4 x nTetrahedra`.
 """
 struct Triangulation3D{T}
     points::Vector{Point3}
@@ -20,7 +21,7 @@ end
 """
     computeVolume(verts)
 
-Compute the volume of a tetrahedron from four vertices.
+Compute the volume of a tetrahedron from four vertices. 
 """
 function computeVolume(verts)
     v1, v2, v3, v4 = verts
@@ -49,7 +50,7 @@ function Triangulation3D(points::Vector{Point3}, tets::AbstractMatrix, weights::
     nPoints = length(points)
     rhoStar = zeros(nPoints)
 
-    @inbounds for tet in eachrow(tets)
+    @inbounds for tet in eachcol(tets)
         pos = points[tet]
         vol = computeVolume(pos)
         for i in tet

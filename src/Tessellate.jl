@@ -11,7 +11,9 @@ pointsToColumns(points::Vector{Point3}) = reduce(hcat, points)
 
 Convert a `3 x nPoints` coordinate matrix into a vector of `Point3` values.
 """
-matrixColumnsToPoints(coords::AbstractMatrix) = [Point3(coords[:, pointId]) for pointId in axes(coords, 2)]
+function matrixColumnsToPoints(coords::AbstractMatrix)
+    return [Point3(coords[:, pointId]) for pointId in axes(coords, 2)]
+end
 
 """
     tessellate(points::Vector{Point3})
@@ -20,7 +22,7 @@ Tetrahedralize a 3D point cloud.
 
 # Returns
 - `coords::Matrix{Float64}`: coordinate matrix with size `3 x nPoints`
-- `tetrahedra::Matrix{Int}`: tetrahedron indices with size `nTetrahedra x 4`
+- `tetrahedra::Matrix{Int32}`: tetrahedron indices with size `4 x nTetrahedra`
 """
 function tessellate(points::Vector{Point3})
     meshData = TetGen.RawTetGenIO{Float64}()
@@ -29,14 +31,14 @@ function tessellate(points::Vector{Point3})
     result = TetGen.tetrahedralize(meshData, "Q")
 
     coords = result.pointlist
-    tetrahedra = result.tetrahedronlist'
+    tetrahedra = result.tetrahedronlist
     return coords, tetrahedra
 end
 
 """
     tessellate(points::Matrix)
 
-Tetrahedralize a `3 x nPoints` coordinate matrix.
+Tetrahedralize a `3 x nPoints` coordinate matrix. 
 """
 function tessellate(points::Matrix)
     meshData = TetGen.RawTetGenIO{Float64}()
@@ -45,6 +47,6 @@ function tessellate(points::Matrix)
     result = TetGen.tetrahedralize(meshData, "Q")
 
     coords = result.pointlist
-    tetrahedra = result.tetrahedronlist'
+    tetrahedra = result.tetrahedronlist
     return coords, tetrahedra
 end

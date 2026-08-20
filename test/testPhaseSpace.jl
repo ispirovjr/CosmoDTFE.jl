@@ -25,6 +25,9 @@ using CosmoDTFE
         estimator = PhaseSpaceEstimator(sourcePoints, warpedPoints, values; depth=2)
         queryPoint = Point3(0.25, 0.25, 0.25)
 
+        @test estimator.tetrahedra isa Matrix{Int32}
+        @test size(estimator.tetrahedra, 1) == 4
+        @test strides(estimator.tetrahedra) == (1, 4)
         @test streamNumber(estimator, queryPoint) == 2
         @test estimator(queryPoint) ≈ 65.0
         @test estimator(Point3(2.0, 2.0, 2.0)) == 0.0

@@ -101,3 +101,14 @@ streams = streamNumber(phaseEstimator, queryPoint)
 - `tessellate`: TetGen-backed tetrahedralization
 - `BoundingVolumeHierarchy`: BVH acceleration structure
 
+## Data layout
+
+CosmoDTFE stores points and tetrahedra by columns: 
+- Coordinate matrices have
+size `3 x nPoints` connectivity 
+- `Point3` simplex matrices have size
+`4 x nTetrahedra` 
+- Dense simplex coordinates have size
+`3 x 4 x nTetrahedra` 
+- Bounding-box tensors have size
+`3 x 2 x nTetrahedra`, with minimum and maximum corners in the second axis.
