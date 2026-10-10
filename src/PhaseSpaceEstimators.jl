@@ -1,9 +1,9 @@
 """
     PhaseSpaceEstimator
 
-Generic DTFE estimator for warped tessellations. The tessellation is generated
-from `sourcePoints`, then each tetrahedron is evaluated in `warpedPoints`.
-Overlapping warped tetrahedra contribute additively. 
+Phase-space DTFE (PS-DTFE) density estimator (Feldbrugge 2024). The tessellation is generated from `sourcePoints`, then
+every tetrahedron is deformed to `warpedPoints`. Vertex densities are computed
+from the deformed star volumes and overlapping warped tetrahedra contribute additively.
 """
 struct PhaseSpaceEstimator{T} <: AbstractEstimator{T}
     bvh::BoundingVolumeHierarchy
@@ -68,48 +68,57 @@ function periodicPhaseSpaceCopies(sourcePoints::Vector{Point3}, warpedPoints::Ve
 end
 
 """
-    PhaseSpaceEstimator(sourcePoints, warpedPoints, values; depth=9)
+    PhaseSpaceEstimator(sourcePoints, warpedPoints, masses; depth=9)
+    PhaseSpaceEstimator(sourcePoints, warpedPoints; depth=9)
 
-Build a generic phase-space estimator. The source points define the
-tessellation, while warped points define where each tetrahedron is searched and
-interpolated.
+Build a phase-space DTFE density estimator. The Delaunay connectivity is
+computed from `sourcePoints` (Lagrangian / initial positions) and kept fixed
+while the vertices are moved to `warpedPoints` (Eulerian / final positions).
+The vertex density is evaluated after this deformation.Unit masses are used when `masses` is omitted.
 """
-function PhaseSpaceEstimator(sourcePoints, warpedPoints, values; depth::Int=9)
+function PhaseSpaceEstimator(sourcePoints, warpedPoints, masses::AbstractVector; depth::Int=9)
     sourcePts = toPoint3Vector(sourcePoints)
     warpedPts = toPoint3Vector(warpedPoints)
-    interpValues = collect(values)
     length(sourcePts) == length(warpedPts) || throw(ArgumentError("sourcePoints and warpedPoints must have the same length"))
-    length(warpedPts) == length(interpValues) || throw(ArgumentError("values must have the same length as warpedPoints"))
+    length(warpedPts) == length(masses) || throw(ArgumentError("masses must have the same length as warpedPoints"))
 
     _, tetrahedra = tessellate(sourcePts)
-    triangulation = Triangulation3D{eltype(interpValues)}(warpedPts, interpValues)
+    triangulation = Triangulation3D(warpedPts, tetrahedra, masses)
     bvh = BoundingVolumeHierarchy(warpedPts, tetrahedra, depth)
 
-    return PhaseSpaceEstimator{eltype(triangulation.rhoStar)}(
-        bvh,
-        triangulation,
-        tetrahedra,
-    )
+    return PhaseSpaceEstimator{Float64}(bvh, triangulation, tetrahedra)
+end
+
+function PhaseSpaceEstimator(sourcePoints, warpedPoints; depth::Int=9)
+    return PhaseSpaceEstimator(sourcePoints, warpedPoints, ones(Float64, length(sourcePoints)); depth=depth)
 end
 
 """
-    PeriodicPhaseSpaceEstimator(sourcePoints, warpedPoints, values; boxSize, boxMin=Point3(0,0,0), padding=0.05, depth=9)
+    PeriodicPhaseSpaceEstimator(sourcePoints, warpedPoints, masses; boxSize, boxMin=Point3(0,0,0), padding=0.05, depth=9)
+    PeriodicPhaseSpaceEstimator(sourcePoints, warpedPoints; boxSize, boxMin=Point3(0,0,0), padding=0.05, depth=9)
 
-Build a periodic phase-space estimator. Boundary copies are selected from
-minimum-image-unwrapped `warpedPoints`; each copied warped point carries the
-matching source point and value. The result is a normal `PhaseSpaceEstimator`.
+Build a periodic phase-space DTFE density estimator. Boundary copies are
+selected from minimum-image-unwrapped `warpedPoints`; each copied warped point
+carries the matching source point and mass. The result is a normal
+`PhaseSpaceEstimator` whose densities are computed on the framed point set.
+Vertices at the outer edge of the padding frame have incomplete stars, so
+`padding` should exceed the size of the largest warped star near the box faces.
 """
-function PeriodicPhaseSpaceEstimator(sourcePoints, warpedPoints, values; boxSize, boxMin=Point3(0.0, 0.0, 0.0), padding::Real=0.05, depth::Int=9)
+function PeriodicPhaseSpaceEstimator(sourcePoints, warpedPoints, masses::AbstractVector; boxSize, boxMin=Point3(0.0, 0.0, 0.0), padding::Real=0.05, depth::Int=9)
     sourcePts = toPoint3Vector(sourcePoints)
     warpedPts = toPoint3Vector(warpedPoints)
-    interpValues = collect(values)
+    pointMasses = collect(Float64, masses)
     length(sourcePts) == length(warpedPts) || throw(ArgumentError("sourcePoints and warpedPoints must have the same length"))
-    length(sourcePts) == length(interpValues) || throw(ArgumentError("values must have the same length as sourcePoints"))
+    length(sourcePts) == length(pointMasses) || throw(ArgumentError("masses must have the same length as sourcePoints"))
 
     boxMin = Point3(boxMin)
     boxSize = Point3(boxSize)
-    copySourcePts, copyWarpedPts, copyValues = periodicPhaseSpaceCopies(sourcePts, warpedPts, interpValues, boxMin, boxSize, padding)
-    return PhaseSpaceEstimator(copySourcePts, copyWarpedPts, copyValues; depth=depth)
+    copySourcePts, copyWarpedPts, copyMasses = periodicPhaseSpaceCopies(sourcePts, warpedPts, pointMasses, boxMin, boxSize, padding)
+    return PhaseSpaceEstimator(copySourcePts, copyWarpedPts, copyMasses; depth=depth)
+end
+
+function PeriodicPhaseSpaceEstimator(sourcePoints, warpedPoints; kwargs...)
+    return PeriodicPhaseSpaceEstimator(sourcePoints, warpedPoints, ones(Float64, length(sourcePoints)); kwargs...)
 end
 
 function (est::PhaseSpaceEstimator{T})(point::AbstractVector{<:Real}) where T

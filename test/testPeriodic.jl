@@ -45,7 +45,7 @@ using CosmoDTFE
         weights = ones(Float64, length(points))
         estimator = PeriodicEstimator(DensityEstimator, points, weights; boxMin=boxMin, boxSize=boxSize, padding=0.12, depth=5)
 
-        queryPoint = boxMin + Point3(0.02 * boxSize[1], 0.50 * boxSize[2], 0.50 * boxSize[3])
+        queryPoint = boxMin + Point3(0.02 * boxSize[1], 0.52 * boxSize[2], 0.52 * boxSize[3])
         densityValue = estimator(queryPoint)
 
         @test densityValue > 0.0
@@ -60,7 +60,7 @@ using CosmoDTFE
         points = gridPoints()
         estimator = PeriodicEstimator(DensityEstimator, points; boxSize=Point3(1.0, 1.0, 1.0), padding=0.12, depth=5)
 
-        @test estimator(Point3(-0.02, 0.50, 0.50)) ≈ estimator(Point3(0.98, 0.50, 0.50))
+        @test estimator(Point3(-0.02, 0.52, 0.52)) ≈ estimator(Point3(0.98, 0.52, 0.52))
     end
 
     @testset "velocity wrapping preserves a constant field and zero gradient" begin
@@ -71,7 +71,7 @@ using CosmoDTFE
         velocities = [constantVelocity for _ in points]
         estimator = PeriodicEstimator(VelocityEstimator, points, velocities; boxMin=boxMin, boxSize=boxSize, padding=0.12, depth=5)
 
-        queryPoint = boxMin + Point3(1.02 * boxSize[1], 0.50 * boxSize[2], 0.50 * boxSize[3])
+        queryPoint = boxMin + Point3(1.02 * boxSize[1], 0.52 * boxSize[2], 0.52 * boxSize[3])
         velocityValue = estimator(queryPoint)
         velocityInterp, divergence, shear, vorticity = velocityGradient(estimator, queryPoint - Point3(boxSize[1], 0.0, 0.0))
 
