@@ -159,8 +159,8 @@ function generateBvhTree(boxes, depth::Int, limBox::SearchBox3D, indices)
     end
 
     ax = depth % 3 + 1
-    mins = boxes[ax, 1, indices]
-    maxs = boxes[ax, 2, indices]
+    mins = @views boxes[ax, 1, indices]
+    maxs = @views boxes[ax, 2, indices]
     line = (limBox[ax, 2] + limBox[ax, 1]) / 2
     
     leftIds = indices[mins.≤line]

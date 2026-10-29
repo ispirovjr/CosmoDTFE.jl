@@ -12,7 +12,7 @@ pointsToColumns(points::Vector{Point3}) = reduce(hcat, points)
 Convert a `3 x nPoints` coordinate matrix into a vector of `Point3` values.
 """
 function matrixColumnsToPoints(coords::AbstractMatrix)
-    return [Point3(coords[:, pointId]) for pointId in axes(coords, 2)]
+    return [Point3(@views coords[:, pointId]) for pointId in axes(coords, 2)]
 end
 
 """

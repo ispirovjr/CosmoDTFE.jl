@@ -51,7 +51,7 @@ function Triangulation3D(points::Vector{Point3}, tets::AbstractMatrix, weights::
     rhoStar = zeros(nPoints)
 
     @inbounds for tet in eachcol(tets)
-        pos = points[tet]
+        pos = @views points[tet]
         vol = computeVolume(pos)
         for i in tet
             rhoStar[i] += vol

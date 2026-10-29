@@ -29,7 +29,7 @@ the point.
 """
 function findSimplex(point, simplices::AbstractMatrix, bvh::BoundingVolumeHierarchy)
     indices = recursiveSearch(point, bvh)
-    simplexNeighborhood = simplices[:, indices]
+    simplexNeighborhood = @view simplices[:, indices]
 
     idx = earlyStopSearch(point, simplexNeighborhood)
     idx === nothing && return nothing
